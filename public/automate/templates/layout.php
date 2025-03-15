@@ -109,6 +109,10 @@
                             <div class="sb-nav-link-icon"><i class="fas fa-key"></i></div>
                             Keywords
                         </a>
+                        <a class="nav-link <?php echo basename($_SERVER['SCRIPT_NAME']) == 'tags.php' ? 'active' : ''; ?>" href="tags.php">
+                            <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
+                            Tags
+                        </a>
                         
                         <div class="sb-sidenav-menu-heading">Configuration</div>
                         <a class="nav-link <?php echo basename($_SERVER['SCRIPT_NAME']) == 'schema_viewer.php' ? 'active' : ''; ?>" href="schema_viewer.php">
@@ -156,6 +160,10 @@
                     
                     <?php if (isset($content)): ?>
                         <?php echo $content; ?>
+                    <?php endif; ?>
+                    
+                    <?php if (isset($pageContent)): ?>
+                        <?php echo $pageContent; ?>
                     <?php endif; ?>
                 </div>
             </main>

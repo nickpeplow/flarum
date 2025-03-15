@@ -75,6 +75,118 @@ class Keyword {
     }
     
     /**
+     * Get a list of keywords with optional filtering and pagination (alias for getKeywords)
+     * 
+     * @param int $perPage Items per page
+     * @param int $offset Offset for pagination
+     * @param string $status Filter by status (optional)
+     * @param string $search Search term (optional)
+     * @return array Array of keywords
+     */
+    public function getList($perPage = 10, $offset = 0, $status = '', $search = '') {
+        // Convert string status to integer if needed
+        $statusValue = null;
+        if (!empty($status)) {
+            switch ($status) {
+                case 'pending':
+                    $statusValue = self::STATUS_PENDING;
+                    break;
+                case 'approved':
+                    $statusValue = self::STATUS_APPROVED;
+                    break;
+                case 'rejected':
+                    $statusValue = self::STATUS_REJECTED;
+                    break;
+            }
+        }
+        
+        $params = [];
+        
+        // Base query
+        $sql = "SELECT * FROM keywords WHERE 1=1";
+        
+        // Add status filter if provided
+        if ($statusValue !== null) {
+            $sql .= " AND status = :status";
+            $params[':status'] = $statusValue;
+        }
+        
+        // Add search filter if provided
+        if (!empty($search)) {
+            $sql .= " AND keyword LIKE :search";
+            $params[':search'] = "%$search%";
+        }
+        
+        // Add order by clause
+        $sql .= " ORDER BY created_at DESC LIMIT :offset, :perPage";
+        $params[':offset'] = $offset;
+        $params[':perPage'] = $perPage;
+        
+        // Execute the query
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            // Properly bind the LIMIT parameters as integers
+            if ($key === ':offset' || $key === ':perPage') {
+                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+            } else {
+                $stmt->bindValue($key, $value);
+            }
+        }
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get total count of keywords with optional filtering
+     * 
+     * @param string $status Filter by status (optional)
+     * @param string $search Search term (optional)
+     * @return int Total count
+     */
+    public function getTotal($status = '', $search = '') {
+        // Convert string status to integer if needed
+        $statusValue = null;
+        if (!empty($status)) {
+            switch ($status) {
+                case 'pending':
+                    $statusValue = self::STATUS_PENDING;
+                    break;
+                case 'approved':
+                    $statusValue = self::STATUS_APPROVED;
+                    break;
+                case 'rejected':
+                    $statusValue = self::STATUS_REJECTED;
+                    break;
+            }
+        }
+        
+        $params = [];
+        
+        // Base query
+        $sql = "SELECT COUNT(*) FROM keywords WHERE 1=1";
+        
+        // Add status filter if provided
+        if ($statusValue !== null) {
+            $sql .= " AND status = :status";
+            $params[':status'] = $statusValue;
+        }
+        
+        // Add search filter if provided
+        if (!empty($search)) {
+            $sql .= " AND keyword LIKE :search";
+            $params[':search'] = "%$search%";
+        }
+        
+        // Execute the query
+        $stmt = $this->db->prepare($sql);
+        foreach ($params as $key => $value) {
+            $stmt->bindValue($key, $value);
+        }
+        $stmt->execute();
+        return $stmt->fetchColumn();
+    }
+    
+    /**
      * Get keyword by ID
      * 
      * @param int $id Keyword ID
@@ -114,8 +226,8 @@ class Keyword {
      * @return int|bool The ID of the new keyword or false on failure
      */
     public function addKeyword($keyword, $postId = null, $tagId = null, $status = self::STATUS_PENDING) {
-        $sql = "INSERT INTO keywords (keyword, post_id, tag_id, status) 
-                VALUES (:keyword, :postId, :tagId, :status)";
+        $sql = "INSERT INTO keywords (keyword, post_id, tag_id, status, created_at) 
+                VALUES (:keyword, :postId, :tagId, :status, NOW())";
         
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':keyword', $keyword);
@@ -131,6 +243,18 @@ class Keyword {
     }
     
     /**
+     * Add a new keyword (alias for addKeyword)
+     * 
+     * @param string $keyword Keyword text
+     * @param int $postId Associated post ID
+     * @param int $tagId Associated tag ID
+     * @return int|bool The ID of the new keyword or false on failure
+     */
+    public function add($keyword, $postId = null, $tagId = null) {
+        return $this->addKeyword($keyword, $postId, $tagId);
+    }
+    
+    /**
      * Update keyword status
      * 
      * @param int $id Keyword ID
@@ -138,13 +262,43 @@ class Keyword {
      * @return bool Success flag
      */
     public function updateKeywordStatus($id, $status) {
-        $sql = "UPDATE keywords SET status = :status WHERE id = :id";
+        $sql = "UPDATE keywords SET status = :status, updated_at = NOW() WHERE id = :id";
         
         $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         $stmt->bindParam(':status', $status, PDO::PARAM_INT);
         
         return $stmt->execute();
+    }
+    
+    /**
+     * Update keyword status (supports string status)
+     * 
+     * @param int $id Keyword ID
+     * @param string|int $status New status (string name or integer)
+     * @return bool Success flag
+     */
+    public function updateStatus($id, $status) {
+        // Convert string status to integer if needed
+        if (is_string($status)) {
+            switch ($status) {
+                case 'pending':
+                    $statusValue = self::STATUS_PENDING;
+                    break;
+                case 'approved':
+                    $statusValue = self::STATUS_APPROVED;
+                    break;
+                case 'rejected':
+                    $statusValue = self::STATUS_REJECTED;
+                    break;
+                default:
+                    throw new Exception("Invalid status: $status");
+            }
+        } else {
+            $statusValue = $status;
+        }
+        
+        return $this->updateKeywordStatus($id, $statusValue);
     }
     
     /**
@@ -160,6 +314,16 @@ class Keyword {
         $stmt->bindParam(':id', $id, PDO::PARAM_INT);
         
         return $stmt->execute();
+    }
+    
+    /**
+     * Delete a keyword (alias for deleteKeyword)
+     * 
+     * @param int $id Keyword ID
+     * @return bool Success flag
+     */
+    public function delete($id) {
+        return $this->deleteKeyword($id);
     }
     
     /**

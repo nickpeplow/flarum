@@ -69,4 +69,14 @@ function get_array_value($array, $key, $default = null) {
  */
 function sanitize($input) {
     return htmlspecialchars(trim($input), ENT_QUOTES, 'UTF-8');
+}
+
+/**
+ * Function to sanitize user input (alias for sanitize)
+ * 
+ * @param string $input The input to sanitize
+ * @return string Sanitized input
+ */
+function sanitizeInput($input) {
+    return sanitize($input);
 } 
