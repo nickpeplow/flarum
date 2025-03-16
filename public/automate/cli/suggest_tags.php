@@ -35,7 +35,7 @@ use Models\Tag;
 
 // Parse command line options
 $options = getopt('', ['limit::', 'dry-run', 'min-confidence::']);
-$limit = isset($options['limit']) ? (int)$options['limit'] : 1; // Default to 1 for testing
+$limit = isset($options['limit']) ? (int)$options['limit'] : 10; // Default to 1 for testing
 $dryRun = isset($options['dry-run']);
 $minConfidence = isset($options['min-confidence']) ? (float)$options['min-confidence'] : 0.7; // Default confidence threshold
 
