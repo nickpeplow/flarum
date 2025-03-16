@@ -7,6 +7,9 @@
                     <i class="fas fa-cogs me-1"></i>
                     OpenRouter API Configuration
                 </div>
+                <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/logs" class="btn btn-sm btn-light">
+                    <i class="fas fa-chart-line me-1"></i> View Logs
+                </a>
             </div>
             <div class="card-body">
                 <form method="post" action="<?php echo \Config\App::get('base_url'); ?>/openrouter/save">
@@ -79,12 +82,8 @@
                             <i class="fas fa-save me-1"></i> Save Settings
                         </button>
                         
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/test-content-model" class="btn btn-outline-info">
-                            <i class="fas fa-vial me-1"></i> Test Content Model (<?php echo (int)$settings['max_tokens']; ?> tokens)
-                        </a>
-                        
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/test-research-model" class="btn btn-outline-secondary">
-                            <i class="fas fa-flask me-1"></i> Test Research Model (<?php echo (int)$settings['max_tokens']; ?> tokens)
+                        <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/test-connection" class="btn btn-info">
+                            <i class="fas fa-plug me-1"></i> Test Connection
                         </a>
                     </div>
                 </form>
@@ -93,196 +92,41 @@
     </div>
 </div>
 
-<!-- OpenRouter Usage Statistics -->
+<!-- OpenRouter Information Card -->
 <div class="row mb-4">
     <div class="col-lg-12">
         <div class="card">
             <div class="card-header bg-info text-white">
-                <i class="fas fa-chart-line me-1"></i>
-                OpenRouter API Usage Statistics
+                <i class="fas fa-info-circle me-1"></i>
+                About OpenRouter
             </div>
             <div class="card-body">
-                <form method="GET" action="<?= \Config\App::get('base_url') ?>/openrouter/settings" class="mb-4">
-                    <div class="row">
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="start_date">Start Date</label>
-                                <input type="date" class="form-control" id="start_date" name="start_date" value="<?= htmlspecialchars($startDate) ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-4">
-                            <div class="form-group">
-                                <label for="end_date">End Date</label>
-                                <input type="date" class="form-control" id="end_date" name="end_date" value="<?= htmlspecialchars($endDate) ?>">
-                            </div>
-                        </div>
-                        <div class="col-md-4 d-flex align-items-end">
-                            <button type="submit" class="btn btn-primary">Filter</button>
-                        </div>
-                    </div>
-                </form>
-                
                 <div class="row">
-                    <div class="col-md-4">
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title">Total Requests</h5>
-                                <p class="card-text display-4"><?= number_format($stats['overall']['total_requests'] ?? 0) ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title">Total Tokens</h5>
-                                <p class="card-text display-4"><?= number_format($stats['overall']['total_tokens'] ?? 0) ?></p>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="card bg-light mb-3">
-                            <div class="card-body">
-                                <h5 class="card-title">Total Cost</h5>
-                                <p class="card-text display-4">$<?= number_format(($stats['overall']['total_cost'] ?? 0), 4) ?></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <?php if (!empty($stats['by_model'])): ?>
-                <h5 class="mt-4">Usage by Model</h5>
-                <div class="table-responsive">
-                    <table class="table table-striped">
-                        <thead>
-                            <tr>
-                                <th>Model</th>
-                                <th>Requests</th>
-                                <th>Tokens</th>
-                                <th>Cost</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <?php foreach ($stats['by_model'] as $model): ?>
-                            <tr>
-                                <td><?= htmlspecialchars($model['model']) ?></td>
-                                <td><?= number_format($model['request_count']) ?></td>
-                                <td><?= number_format($model['total_tokens']) ?></td>
-                                <td>$<?= number_format($model['total_cost'], 4) ?></td>
-                            </tr>
-                            <?php endforeach; ?>
-                        </tbody>
-                    </table>
-                </div>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- OpenRouter API Request Logs -->
-<div class="row mb-4">
-    <div class="col-lg-12">
-        <div class="card">
-            <div class="card-header bg-secondary text-white">
-                <i class="fas fa-history me-1"></i>
-                OpenRouter API Request Logs
-            </div>
-            <div class="card-body">
-                <?php if (empty($logs)): ?>
-                    <div class="alert alert-info">No logs found.</div>
-                <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table table-striped">
-                            <thead>
-                                <tr>
-                                    <th>ID</th>
-                                    <th>Date</th>
-                                    <th>Model</th>
-                                    <th>Type</th>
-                                    <th>Prompt</th>
-                                    <th>Tokens</th>
-                                    <th>Cost</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <?php foreach ($logs as $log): ?>
-                                <tr>
-                                    <td><?= $log['id'] ?></td>
-                                    <td><?= htmlspecialchars($log['created_at']) ?></td>
-                                    <td><?= htmlspecialchars($log['model']) ?></td>
-                                    <td><?= htmlspecialchars($log['request_type']) ?></td>
-                                    <td>
-                                        <button type="button" class="btn btn-sm btn-link prompt-btn" 
-                                                data-bs-toggle="modal" data-bs-target="#promptModal" 
-                                                data-prompt="<?= htmlspecialchars($log['prompt']) ?>"
-                                                data-response="<?= htmlspecialchars($log['response_text']) ?>">
-                                            View
-                                        </button>
-                                    </td>
-                                    <td><?= number_format($log['total_tokens'] ?? 0) ?></td>
-                                    <td>$<?= number_format(($log['cost'] ?? 0), 6) ?></td>
-                                    <td>
-                                        <?php if ($log['status'] === 'completed'): ?>
-                                            <span class="badge bg-success">Completed</span>
-                                        <?php elseif ($log['status'] === 'failed'): ?>
-                                            <span class="badge bg-danger" title="<?= htmlspecialchars($log['error_message']) ?>">Failed</span>
-                                        <?php else: ?>
-                                            <span class="badge bg-warning text-dark">Pending</span>
-                                        <?php endif; ?>
-                                    </td>
-                                </tr>
-                                <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    
-                    <!-- Pagination -->
-                    <?php if ($totalPages > 1): ?>
-                    <nav aria-label="Page navigation">
-                        <ul class="pagination justify-content-center">
-                            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                                <a class="page-link" href="?page=<?= $page-1 ?>&start_date=<?= htmlspecialchars($startDate) ?>&end_date=<?= htmlspecialchars($endDate) ?>">Previous</a>
-                            </li>
-                            
-                            <?php for ($i = max(1, $page - 2); $i <= min($page + 2, $totalPages); $i++): ?>
-                            <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                                <a class="page-link" href="?page=<?= $i ?>&start_date=<?= htmlspecialchars($startDate) ?>&end_date=<?= htmlspecialchars($endDate) ?>"><?= $i ?></a>
-                            </li>
-                            <?php endfor; ?>
-                            
-                            <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                                <a class="page-link" href="?page=<?= $page+1 ?>&start_date=<?= htmlspecialchars($startDate) ?>&end_date=<?= htmlspecialchars($endDate) ?>">Next</a>
-                            </li>
+                    <div class="col-md-6">
+                        <h5>What is OpenRouter?</h5>
+                        <p>OpenRouter is a unified API that provides access to various AI models (like Claude, GPT-4, etc.) through a single endpoint. This allows you to use different AI models for different purposes without changing your code.</p>
+                        
+                        <h5>Available Features</h5>
+                        <ul>
+                            <li><strong>AI Content Generator:</strong> Generate summaries, expand ideas, and analyze content</li>
+                            <li><strong>Keyword Extraction:</strong> Automatically extract keywords from text</li>
+                            <li><strong>OpenRouter Test:</strong> Test different models and prompts</li>
                         </ul>
-                    </nav>
-                    <?php endif; ?>
-                <?php endif; ?>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Modal for viewing prompt and response -->
-<div class="modal fade" id="promptModal" tabindex="-1" aria-labelledby="promptModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="promptModalLabel">Prompt & Response</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-            </div>
-            <div class="modal-body">
-                <div class="mb-3">
-                    <h6>Prompt:</h6>
-                    <div class="p-3 bg-light rounded" id="modalPrompt"></div>
+                    </div>
+                    <div class="col-md-6">
+                        <h5>Model Recommendations</h5>
+                        <ul>
+                            <li><strong>For Content Generation:</strong> Claude 3 Haiku or GPT-4o Mini are fast and cost-effective.</li>
+                            <li><strong>For Research:</strong> Claude 3.7 Sonnet or Claude 3 Opus provide more detailed analysis.</li>
+                            <li><strong>For Free Usage:</strong> DeepSeek R1 (Free) provides good results without cost.</li>
+                        </ul>
+                        
+                        <div class="alert alert-warning mt-3">
+                            <i class="fas fa-exclamation-triangle me-2"></i>
+                            <strong>Note:</strong> Using different models may incur different costs. Check the <a href="https://openrouter.ai/docs#models" target="_blank">OpenRouter pricing</a> for details.
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <h6>Response:</h6>
-                    <div class="p-3 bg-light rounded" id="modalResponse"></div>
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
             </div>
         </div>
     </div>
@@ -303,18 +147,5 @@ document.addEventListener('DOMContentLoaded', function() {
         icon.classList.toggle('fa-eye');
         icon.classList.toggle('fa-eye-slash');
     });
-    
-    // Handle prompt modal
-    const promptModal = document.getElementById('promptModal');
-    if (promptModal) {
-        promptModal.addEventListener('show.bs.modal', function (event) {
-            const button = event.relatedTarget;
-            const prompt = button.getAttribute('data-prompt');
-            const response = button.getAttribute('data-response');
-            
-            document.getElementById('modalPrompt').textContent = prompt;
-            document.getElementById('modalResponse').textContent = response;
-        });
-    }
 });
 </script> 

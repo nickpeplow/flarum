@@ -1,0 +1,24 @@
+{
+    "total_assigned": 3,
+    "last_run": 1742107565,
+    "runs": [
+        {
+            "date": 1742106822,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742107077,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742107565,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        }
+    ]
+}
