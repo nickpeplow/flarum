@@ -10,6 +10,12 @@ define('MVC_APP', true);
 // Prevent including old templates
 define('EXCLUDE_OLD_TEMPLATES', true);
 
+// Check if a route parameter is provided
+if (isset($_GET['route'])) {
+    // Rewrite the request URI to use the route parameter
+    $_SERVER['REQUEST_URI'] = '/' . $_GET['route'];
+}
+
 // Check if this is a direct access to a PHP file (except for this index.php)
 $scriptName = basename($_SERVER['SCRIPT_FILENAME']);
 if (substr($scriptName, -4) === '.php' && $scriptName !== 'index.php' && file_exists(__DIR__ . '/Core/Autoloader.php')) {

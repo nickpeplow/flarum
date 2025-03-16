@@ -95,6 +95,7 @@ if ($debug):
                         <tr>
                             <th>ID</th>
                             <th>Keyword</th>
+                            <th>Tag</th>
                             <th>Status</th>
                             <th>Created</th>
                             <th>Actions</th>
@@ -105,10 +106,26 @@ if ($debug):
                             <tr>
                                 <td>#<?php echo $keyword['id']; ?></td>
                                 <td><?php echo htmlspecialchars($keyword['keyword']); ?></td>
+                                <td>
+                                    <?php if (!empty($keyword['tag_id']) && !empty($keyword['tag_name'])): ?>
+                                        <span class="badge rounded-pill" style="background-color: <?php echo $keyword['tag_color']; ?>">
+                                            <i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($keyword['tag_name']); ?>
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="text-muted">None</span>
+                                    <?php endif; ?>
+                                </td>
                                 <td><?php echo \Models\Keyword::getStatusBadge($keyword['status']); ?></td>
                                 <td><?php echo date('M j, Y H:i', strtotime($keyword['created_at'])); ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
+                                        <!-- Edit Button -->
+                                        <button type="button" class="btn btn-sm btn-primary me-1" 
+                                                onclick="editKeyword(<?php echo $keyword['id']; ?>, '<?php echo htmlspecialchars(addslashes($keyword['keyword'])); ?>', <?php echo $keyword['tag_id'] ? $keyword['tag_id'] : 'null'; ?>)" 
+                                                title="Edit">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                    
                                         <form method="post" action="<?php echo \Config\App::get('base_url'); ?>/keywords" class="d-inline">
                                             <input type="hidden" name="keyword_id" value="<?php echo $keyword['id']; ?>">
                                             
@@ -237,4 +254,136 @@ if ($debug):
             </div>
         </form>
     </div>
-</div> 
+</div>
+
+<!-- Edit Keyword Modal -->
+<div class="modal fade" id="editKeywordModal" tabindex="-1" aria-labelledby="editKeywordModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header bg-primary text-white">
+                <h5 class="modal-title" id="editKeywordModalLabel">Edit Keyword</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editKeywordForm" method="post" action="<?php echo \Config\App::get('base_url'); ?>/keywords">
+                    <input type="hidden" id="editKeywordId" name="keyword_id">
+                    <input type="hidden" name="action" value="update">
+                    
+                    <div class="mb-3">
+                        <label for="editKeywordText" class="form-label">Keyword</label>
+                        <input type="text" class="form-control" id="editKeywordText" name="keyword_text" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="editKeywordTag" class="form-label">Associated Tag</label>
+                        <select class="form-select" id="editKeywordTag" name="tag_id">
+                            <option value="">None</option>
+                            
+                            <?php 
+                            // Fetch tags from the database - we need to get all parent tags and their children
+                            try {
+                                global $pdo;
+                                $tagModel = new \Models\Tag($pdo);
+                                $parentTags = $tagModel->getList(100, 0, '', 0); // Get only parent tags
+                            } catch (\Exception $e) {
+                                // If there's an error, just show an empty dropdown
+                                error_log("Error fetching tags: " . $e->getMessage());
+                                $parentTags = [];
+                            }
+                            
+                            foreach ($parentTags as $parentTag): 
+                            ?>
+                                <!-- Parent tags (categories) are disabled -->
+                                <option value="<?php echo $parentTag['id']; ?>" disabled class="fw-bold">
+                                    <?php echo htmlspecialchars($parentTag['name']); ?> (Category)
+                                </option>
+                                
+                                <?php 
+                                // Get child tags for this parent
+                                $childTags = $tagModel->getList(100, 0, '', $parentTag['id']);
+                                foreach ($childTags as $childTag): 
+                                ?>
+                                    <option value="<?php echo $childTag['id']; ?>" class="ps-3">
+                                        <?php echo htmlspecialchars($childTag['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                                
+                                <!-- Add a visual separator -->
+                                <?php if (!empty($childTags)): ?>
+                                    <option disabled>──────────</option>
+                                <?php endif; ?>
+                                
+                            <?php endforeach; ?>
+                            
+                            <!-- Also show top-level tags that aren't parents -->
+                            <?php
+                            $nonParentTags = [];
+                            foreach ($parentTags as $tag) {
+                                $isParent = false;
+                                foreach ($parentTags as $checkTag) {
+                                    if ($checkTag['parent_id'] == $tag['id']) {
+                                        $isParent = true;
+                                        break;
+                                    }
+                                }
+                                if (!$isParent) {
+                                    $nonParentTags[] = $tag;
+                                }
+                            }
+                            
+                            if (!empty($nonParentTags)): 
+                            ?>
+                                <option disabled>── Individual Tags ──</option>
+                                <?php foreach ($nonParentTags as $tag): ?>
+                                    <option value="<?php echo $tag['id']; ?>">
+                                        <?php echo htmlspecialchars($tag['name']); ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            <?php endif; ?>
+                        </select>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-primary" id="updateKeywordBtn">Update Keyword</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Page Scripts -->
+<script>
+    // Function to open the Edit Keyword modal
+    function editKeyword(id, keyword, tagId) {
+        // Set the form values
+        document.getElementById('editKeywordId').value = id;
+        document.getElementById('editKeywordText').value = keyword;
+        
+        // Set the tag dropdown
+        const tagSelect = document.getElementById('editKeywordTag');
+        if (tagId) {
+            // Find and select the option with the matching value
+            for (let i = 0; i < tagSelect.options.length; i++) {
+                if (tagSelect.options[i].value == tagId) {
+                    tagSelect.selectedIndex = i;
+                    break;
+                }
+            }
+        } else {
+            // Select the "None" option
+            tagSelect.selectedIndex = 0;
+        }
+        
+        // Open the modal
+        const editModal = new bootstrap.Modal(document.getElementById('editKeywordModal'));
+        editModal.show();
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        // Handle the edit keyword form submission
+        document.getElementById('updateKeywordBtn').addEventListener('click', function() {
+            document.getElementById('editKeywordForm').submit();
+        });
+    });
+</script> 

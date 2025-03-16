@@ -34,30 +34,33 @@ class Keyword {
         $params = [];
         
         // Base query
-        $sql = "SELECT SQL_CALC_FOUND_ROWS * FROM keywords WHERE 1=1";
+        $sql = "SELECT SQL_CALC_FOUND_ROWS k.*, t.name as tag_name, t.color as tag_color
+               FROM keywords k
+               LEFT JOIN tags t ON k.tag_id = t.id
+               WHERE 1=1";
         
         // Add status filter if provided
         if ($status !== null && $status !== 'all') {
             if ($status === 'pending') {
-                $sql .= " AND status = :status";
+                $sql .= " AND k.status = :status";
                 $params[':status'] = self::STATUS_PENDING;
             } elseif ($status === 'approved') {
-                $sql .= " AND status = :status";
+                $sql .= " AND k.status = :status";
                 $params[':status'] = self::STATUS_APPROVED;
             } elseif ($status === 'rejected') {
-                $sql .= " AND status = :status";
+                $sql .= " AND k.status = :status";
                 $params[':status'] = self::STATUS_REJECTED;
             }
         }
         
         // Add search filter if provided
         if (!empty($search)) {
-            $sql .= " AND keyword LIKE :search";
+            $sql .= " AND k.keyword LIKE :search";
             $params[':search'] = "%$search%";
         }
         
-        // Add order by clause
-        $sql .= " ORDER BY created_at DESC LIMIT :offset, :perPage";
+        // Add order by, limit and offset
+        $sql .= " ORDER BY k.created_at DESC LIMIT :offset, :perPage";
         $params[':offset'] = $offset;
         $params[':perPage'] = $perPage;
         
@@ -260,31 +263,50 @@ class Keyword {
      * @return bool Success or failure
      */
     public function updateStatus($id, $status) {
-        // Convert status string to int if needed
-        if (is_string($status)) {
-            switch (strtolower($status)) {
-                case 'pending':
-                    $status = self::STATUS_PENDING;
-                    break;
-                case 'approved':
-                    $status = self::STATUS_APPROVED;
-                    break;
-                case 'rejected':
-                    $status = self::STATUS_REJECTED;
-                    break;
-            }
+        try {
+            $statusValue = $this->getStatusValue($status);
+            
+            $stmt = $this->db->prepare("
+                UPDATE keywords
+                SET status = :status, updated_at = NOW()
+                WHERE id = :id
+            ");
+            
+            $stmt->bindParam(':status', $statusValue);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            error_log("Error in Keyword::updateStatus: " . $e->getMessage());
+            return false;
         }
-        
-        $stmt = $this->db->prepare("
-            UPDATE keywords
-            SET status = :status, updated_at = NOW()
-            WHERE id = :id
-        ");
-        
-        $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
-        $stmt->bindParam(':status', $status, \PDO::PARAM_INT);
-        
-        return $stmt->execute();
+    }
+    
+    /**
+     * Update keyword text and tag
+     * 
+     * @param int $id Keyword ID
+     * @param string $keyword New keyword text
+     * @param int|null $tagId Tag ID (optional)
+     * @return bool Success or failure
+     */
+    public function updateKeyword($id, $keyword, $tagId = null) {
+        try {
+            $stmt = $this->db->prepare("
+                UPDATE keywords
+                SET keyword = :keyword, tag_id = :tag_id, updated_at = NOW()
+                WHERE id = :id
+            ");
+            
+            $stmt->bindParam(':keyword', $keyword);
+            $stmt->bindParam(':tag_id', $tagId);
+            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            
+            return $stmt->execute();
+        } catch (\Exception $e) {
+            error_log("Error in Keyword::updateKeyword: " . $e->getMessage());
+            return false;
+        }
     }
     
     /**
@@ -329,6 +351,28 @@ class Keyword {
     }
     
     /**
+     * Convert status string to integer value
+     * 
+     * @param string|int $status Status string or integer
+     * @return int Status integer value
+     */
+    private function getStatusValue($status) {
+        if (is_string($status)) {
+            switch (strtolower($status)) {
+                case 'pending':
+                    return self::STATUS_PENDING;
+                case 'approved':
+                    return self::STATUS_APPROVED;
+                case 'rejected':
+                    return self::STATUS_REJECTED;
+                default:
+                    return self::STATUS_PENDING;
+            }
+        }
+        return $status;
+    }
+    
+    /**
      * Get status name
      * 
      * @param int $status Status code
@@ -350,8 +394,8 @@ class Keyword {
     /**
      * Get status badge HTML
      * 
-     * @param int $status Status code
-     * @return string HTML for status badge
+     * @param int $status Status integer
+     * @return string HTML for the status badge
      */
     public static function getStatusBadge($status) {
         $name = self::getStatusName($status);

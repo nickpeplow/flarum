@@ -5,6 +5,10 @@
  * Handles all database operations for the tags table
  */
 
+namespace Models;
+
+use \PDO;
+
 class Tag {
     private $db;
     

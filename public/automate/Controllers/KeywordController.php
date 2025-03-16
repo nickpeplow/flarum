@@ -122,6 +122,25 @@ class KeywordController extends Controller {
                         $this->keywordModel->delete($keywordId);
                         $this->addAlert('danger', 'Keyword deleted permanently.');
                         break;
+                    case 'update':
+                        if (isset($_POST['keyword_text'])) {
+                            $keywordText = trim($_POST['keyword_text']);
+                            $tagId = isset($_POST['tag_id']) && !empty($_POST['tag_id']) ? (int)$_POST['tag_id'] : null;
+                            
+                            if (empty($keywordText)) {
+                                $this->addAlert('danger', 'Keyword text cannot be empty.');
+                            } else {
+                                $success = $this->keywordModel->updateKeyword($keywordId, $keywordText, $tagId);
+                                if ($success) {
+                                    $this->addAlert('success', 'Keyword updated successfully.');
+                                } else {
+                                    $this->addAlert('danger', 'Failed to update keyword.');
+                                }
+                            }
+                        } else {
+                            $this->addAlert('danger', 'Keyword text is required.');
+                        }
+                        break;
                 }
             }
             
