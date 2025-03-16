@@ -24,8 +24,82 @@ class TagController extends Controller {
      * @return void
      */
     public function index() {
-        // Sample tag data - in a real implementation, this would come from the database
-        $tags = [
+        try {
+            // Fetch parent tags (those with null parent_id)
+            $parentTagsQuery = "SELECT * FROM tags WHERE parent_id IS NULL ORDER BY position, name";
+            $parentTags = $this->db->query($parentTagsQuery)->fetchAll(\PDO::FETCH_ASSOC);
+            
+            // Initialize the tags array to hold structured data
+            $tags = [];
+            
+            foreach ($parentTags as $parentTag) {
+                // For each parent tag, get its children
+                $childTagsQuery = "SELECT * FROM tags WHERE parent_id = :parent_id ORDER BY position, name";
+                $stmt = $this->db->prepare($childTagsQuery);
+                $stmt->bindParam(':parent_id', $parentTag['id'], \PDO::PARAM_INT);
+                $stmt->execute();
+                $childTags = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+                
+                // Add the parent tag with its children to the result array
+                $parentTag['children'] = $childTags;
+                $tags[] = $parentTag;
+            }
+            
+            // If no tags found, provide sample data as a fallback
+            if (empty($tags)) {
+                error_log("No tags found in database, using sample data");
+                $tags = $this->getSampleTagData();
+            } else {
+                error_log("Found " . count($tags) . " parent tags in database");
+            }
+            
+            // Page metadata
+            $pageTitle = 'Tag Management - Keywords Automation';
+            $pageHeader = 'Tag Management';
+            
+            // Get alerts
+            $alerts = $this->getAlerts();
+            
+            // Render the view
+            $this->render('tags/index', [
+                'pageTitle' => $pageTitle,
+                'pageHeader' => $pageHeader,
+                'tags' => $tags,
+                'alerts' => $alerts,
+                'db' => $this->db
+            ]);
+        } catch (\PDOException $e) {
+            error_log("Error in TagController::index: Database error: " . $e->getMessage());
+            
+            // Fallback to sample data if database query fails
+            $tags = $this->getSampleTagData();
+            
+            // Add error alert
+            $this->addAlert('danger', 'Database Error', 'Could not retrieve tags from the database: ' . $e->getMessage());
+            $alerts = $this->getAlerts();
+            
+            // Page metadata
+            $pageTitle = 'Tag Management - Keywords Automation';
+            $pageHeader = 'Tag Management';
+            
+            // Render the view with sample data
+            $this->render('tags/index', [
+                'pageTitle' => $pageTitle,
+                'pageHeader' => $pageHeader,
+                'tags' => $tags,
+                'alerts' => $alerts,
+                'db' => $this->db
+            ]);
+        }
+    }
+    
+    /**
+     * Get sample tag data as a fallback
+     * 
+     * @return array Sample tag data
+     */
+    private function getSampleTagData() {
+        return [
             [
                 'id' => 1,
                 'name' => 'General',
@@ -86,21 +160,5 @@ class TagController extends Controller {
                 'children' => []
             ]
         ];
-        
-        // Page metadata
-        $pageTitle = 'Tag Management - Keywords Automation';
-        $pageHeader = 'Tag Management';
-        
-        // Get alerts
-        $alerts = $this->getAlerts();
-        
-        // Render the view
-        $this->render('tags/index', [
-            'pageTitle' => $pageTitle,
-            'pageHeader' => $pageHeader,
-            'tags' => $tags,
-            'alerts' => $alerts,
-            'db' => $this->db
-        ]);
     }
 } 
