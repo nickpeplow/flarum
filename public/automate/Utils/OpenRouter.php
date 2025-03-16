@@ -62,6 +62,10 @@ class OpenRouter {
         // Determine which model to use
         $model = $modelType === 'research' ? $this->researchModel : $this->contentModel;
         
+        // Log the environment settings
+        error_log("OpenRouter generate - Environment settings: max_tokens=" . $this->maxTokens . ", temperature=" . $this->temperature);
+        error_log("OpenRouter generate - Using model: " . $model . " for type: " . $modelType);
+        
         // Prepare request data
         $data = [
             'model' => $model,
@@ -74,6 +78,9 @@ class OpenRouter {
             'max_tokens' => $options['max_tokens'] ?? $this->maxTokens,
             'temperature' => $options['temperature'] ?? $this->temperature
         ];
+        
+        // Log the actual values being used
+        error_log("OpenRouter generate - Final request parameters: max_tokens=" . $data['max_tokens'] . ", temperature=" . $data['temperature']);
         
         // Add any additional options
         foreach ($options as $key => $value) {
@@ -160,10 +167,36 @@ class OpenRouter {
      * @return string The generated text
      */
     public function extractContent($response) {
-        if (isset($response['choices'][0]['message']['content'])) {
-            return $response['choices'][0]['message']['content'];
+        error_log("OpenRouter extractContent - Starting with response: " . json_encode(array_keys($response)));
+        
+        if (isset($response['choices']) && !empty($response['choices'])) {
+            error_log("OpenRouter extractContent - Found choices array with " . count($response['choices']) . " items");
+            
+            if (isset($response['choices'][0]['message']) && isset($response['choices'][0]['message']['content'])) {
+                $content = $response['choices'][0]['message']['content'];
+                error_log("OpenRouter extractContent - Found content in choices[0]['message']['content']: " . substr($content, 0, 100));
+                return $content;
+            } 
+            elseif (isset($response['choices'][0]['text'])) {
+                $content = $response['choices'][0]['text'];
+                error_log("OpenRouter extractContent - Found content in choices[0]['text']: " . substr($content, 0, 100));
+                return $content;
+            }
+            elseif (isset($response['choices'][0]['content'])) {
+                $content = $response['choices'][0]['content'];
+                error_log("OpenRouter extractContent - Found content in choices[0]['content']: " . substr($content, 0, 100));
+                return $content;
+            }
+            else {
+                // Try to find any content field in the first choice
+                error_log("OpenRouter extractContent - Standard content fields not found, examining full choice structure: " . json_encode($response['choices'][0]));
+                
+                // If we can't find a standard content field, return the whole choice as JSON
+                return json_encode($response['choices'][0]);
+            }
         }
         
+        error_log("OpenRouter extractContent - No valid content found in response");
         return '';
     }
     
@@ -234,10 +267,31 @@ class OpenRouter {
         if (!$requestId) return false;
         
         try {
+            // Debug the response structure
+            error_log("OpenRouter logResponse - Request ID: " . $requestId);
+            error_log("OpenRouter logResponse - Response structure: " . json_encode($response));
+            
+            // Check for message content specifically
+            if (isset($response['choices']) && isset($response['choices'][0])) {
+                if (isset($response['choices'][0]['message']['content'])) {
+                    error_log("OpenRouter logResponse - Found content in choices[0]['message']['content']: " . 
+                        substr($response['choices'][0]['message']['content'], 0, 100));
+                } elseif (isset($response['choices'][0]['text'])) {
+                    error_log("OpenRouter logResponse - Found content in choices[0]['text']: " . 
+                        substr($response['choices'][0]['text'], 0, 100));
+                } else {
+                    error_log("OpenRouter logResponse - No content found in expected fields. Full choices[0]: " . 
+                        json_encode($response['choices'][0]));
+                }
+            } else {
+                error_log("OpenRouter logResponse - No choices array in response");
+            }
+            
             return $this->requestModel->updateWithResponse($requestId, $response, $duration);
         } catch (\Exception $e) {
             // Log error but don't fail the main request
             error_log("Error logging OpenRouter response: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
             return false;
         }
     }

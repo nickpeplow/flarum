@@ -57,55 +57,107 @@ class OpenRouterRequest extends Model {
      * @return bool Success status
      */
     public function updateWithResponse($requestId, $response, $duration = null) {
-        // Extract relevant data from the response
-        $responseText = '';
-        if (isset($response['choices'][0]['message']['content'])) {
-            $responseText = $response['choices'][0]['message']['content'];
-        } elseif (isset($response['choices'][0]['text'])) {
-            $responseText = $response['choices'][0]['text'];
-        } else {
-            $responseText = json_encode($response);
-        }
-        
-        $usage = $response['usage'] ?? [];
-        
-        // Calculate cost
-        $cost = 0;
-        if (!empty($response['usage'])) {
-            $model = $response['model'] ?? '';
-            $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
-            $completionTokens = $response['usage']['completion_tokens'] ?? 0;
+        try {
+            error_log("OpenRouterRequest updateWithResponse - Starting for request ID: " . $requestId);
+            error_log("OpenRouterRequest updateWithResponse - Full response: " . json_encode($response));
             
-            // Simple cost calculation based on model
-            if (strpos($model, 'claude-3-opus') !== false) {
-                $cost = ($promptTokens / 1000 * 0.015) + ($completionTokens / 1000 * 0.075);
-            } elseif (strpos($model, 'claude-3.7-sonnet') !== false) {
-                $cost = ($promptTokens / 1000 * 0.003) + ($completionTokens / 1000 * 0.015);
-            } elseif (strpos($model, 'claude-3.5-sonnet') !== false) {
-                $cost = ($promptTokens / 1000 * 0.0015) + ($completionTokens / 1000 * 0.006);
-            } elseif (strpos($model, 'claude-3-haiku') !== false) {
-                $cost = ($promptTokens / 1000 * 0.00025) + ($completionTokens / 1000 * 0.00125);
-            } elseif (strpos($model, 'gpt-4o-mini') !== false) {
-                $cost = ($promptTokens / 1000 * 0.00015) + ($completionTokens / 1000 * 0.0006);
-            } elseif (strpos($model, 'deepseek-r1:free') !== false) {
-                $cost = 0;
-            } else {
-                $cost = ($promptTokens + $completionTokens) / 1000 * 0.001; // Default
+            // Extract relevant data from the response
+            $responseText = '';
+            
+            // Try different response formats
+            if (isset($response['choices'][0]['message']['content'])) {
+                $responseText = $response['choices'][0]['message']['content'];
+                error_log("OpenRouterRequest updateWithResponse - Using content from choices[0]['message']['content']");
+            } 
+            elseif (isset($response['choices'][0]['text'])) {
+                $responseText = $response['choices'][0]['text'];
+                error_log("OpenRouterRequest updateWithResponse - Using content from choices[0]['text']");
             }
+            elseif (isset($response['choices'][0]['content'])) {
+                $responseText = $response['choices'][0]['content'];
+                error_log("OpenRouterRequest updateWithResponse - Using content from choices[0]['content']");
+            }
+            elseif (isset($response['choices']) && !empty($response['choices'])) {
+                // If we can't find a standard content field, use the whole choice as JSON
+                $responseText = json_encode($response['choices'][0]);
+                error_log("OpenRouterRequest updateWithResponse - No standard content field found, using JSON of first choice");
+            }
+            else {
+                // Last resort - use the entire response
+                $responseText = json_encode($response);
+                error_log("OpenRouterRequest updateWithResponse - No choices array found, using JSON of full response");
+            }
+            
+            // Make sure we have a non-empty response text
+            if (empty($responseText)) {
+                $responseText = "No content returned from API. Full response: " . json_encode($response);
+                error_log("OpenRouterRequest updateWithResponse - Empty response text, using fallback message");
+            }
+            
+            error_log("OpenRouterRequest updateWithResponse - Final responseText length: " . strlen($responseText));
+            error_log("OpenRouterRequest updateWithResponse - Extracted responseText: " . substr($responseText, 0, 100));
+            
+            $usage = $response['usage'] ?? [];
+            
+            // Calculate cost
+            $cost = 0;
+            if (!empty($response['usage'])) {
+                $model = $response['model'] ?? '';
+                $promptTokens = $response['usage']['prompt_tokens'] ?? 0;
+                $completionTokens = $response['usage']['completion_tokens'] ?? 0;
+                
+                // Simple cost calculation based on model
+                if (strpos($model, 'claude-3-opus') !== false) {
+                    $cost = ($promptTokens / 1000 * 0.015) + ($completionTokens / 1000 * 0.075);
+                } elseif (strpos($model, 'claude-3.7-sonnet') !== false) {
+                    $cost = ($promptTokens / 1000 * 0.003) + ($completionTokens / 1000 * 0.015);
+                } elseif (strpos($model, 'claude-3.5-sonnet') !== false) {
+                    $cost = ($promptTokens / 1000 * 0.0015) + ($completionTokens / 1000 * 0.006);
+                } elseif (strpos($model, 'claude-3-haiku') !== false) {
+                    $cost = ($promptTokens / 1000 * 0.00025) + ($completionTokens / 1000 * 0.00125);
+                } elseif (strpos($model, 'gpt-4o-mini') !== false) {
+                    $cost = ($promptTokens / 1000 * 0.00015) + ($completionTokens / 1000 * 0.0006);
+                } elseif (strpos($model, 'deepseek-r1:free') !== false) {
+                    $cost = 0;
+                } else {
+                    $cost = ($promptTokens + $completionTokens) / 1000 * 0.001; // Default
+                }
+            }
+            
+            $data = [
+                'response_text' => $responseText,
+                'completion_tokens' => $usage['completion_tokens'] ?? null,
+                'prompt_tokens' => $usage['prompt_tokens'] ?? null,
+                'total_tokens' => $usage['total_tokens'] ?? null,
+                'cost' => $cost,
+                'request_duration' => $duration,
+                'status' => 'completed',
+                'updated_at' => date('Y-m-d H:i:s')
+            ];
+            
+            error_log("OpenRouterRequest updateWithResponse - Prepared update data: " . json_encode(array_keys($data)));
+            
+            $result = $this->update($requestId, $data);
+            error_log("OpenRouterRequest updateWithResponse - Update result: " . ($result ? 'success' : 'failure'));
+            
+            return $result;
+        } catch (\Exception $e) {
+            error_log("OpenRouterRequest updateWithResponse - Error: " . $e->getMessage());
+            error_log("OpenRouterRequest updateWithResponse - Stack trace: " . $e->getTraceAsString());
+            
+            // Try to update with error information
+            try {
+                $this->update($requestId, [
+                    'response_text' => "Error processing response: " . $e->getMessage(),
+                    'status' => 'completed',
+                    'updated_at' => date('Y-m-d H:i:s')
+                ]);
+            } catch (\Exception $innerEx) {
+                error_log("OpenRouterRequest updateWithResponse - Failed to update with error: " . $innerEx->getMessage());
+            }
+            
+            return false;
         }
-        
-        $data = [
-            'response_text' => $responseText,
-            'completion_tokens' => $usage['completion_tokens'] ?? null,
-            'prompt_tokens' => $usage['prompt_tokens'] ?? null,
-            'total_tokens' => $usage['total_tokens'] ?? null,
-            'cost' => $cost,
-            'request_duration' => $duration,
-            'status' => 'completed',
-            'updated_at' => date('Y-m-d H:i:s')
-        ];
-        
-        return $this->update($requestId, $data);
     }
     
     /**

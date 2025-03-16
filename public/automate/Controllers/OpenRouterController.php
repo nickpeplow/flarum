@@ -144,14 +144,36 @@ class OpenRouterController extends Controller {
             $openRouter = new \Utils\OpenRouter();
             $prompt = "Hello, please respond with a short greeting.";
             
+            // Debug message before making the call
+            error_log("Making content model test call with prompt: " . $prompt);
+            
+            // Use the environment settings for max_tokens instead of hardcoding
             $response = $openRouter->generate($prompt, 'content', [
-                'request_source' => 'test_button',
-                'max_tokens' => 50
+                'request_source' => 'test_button'
+                // No max_tokens override - will use the value from .env
             ]);
+            
+            // Log the full raw response for debugging
+            error_log("Raw API response: " . json_encode($response));
             
             if (!empty($response)) {
                 $content = $openRouter->extractContent($response);
-                $this->addAlert('success', 'Content model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"');
+                error_log("Extracted content: " . $content);
+                
+                // Get the last request ID for debugging
+                $requestModel = new \Models\OpenRouterRequest();
+                $lastLog = $requestModel->getAll(1, 0, 'id', 'DESC');
+                if (!empty($lastLog)) {
+                    error_log("Last log record ID: " . $lastLog[0]['id'] . ", response_text: " . substr($lastLog[0]['response_text'] ?? 'NULL', 0, 100));
+                }
+                
+                // Check the full response structure
+                if (isset($response['choices']) && isset($response['choices'][0])) {
+                    error_log("Response choices structure: " . json_encode($response['choices'][0]));
+                }
+                
+                $this->addAlert('success', 'Content model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"' . 
+                    '<br>Response structure logged to error log for debugging.');
             } else {
                 $this->addAlert('warning', 'Content model connected but returned an empty response.');
             }
@@ -173,14 +195,36 @@ class OpenRouterController extends Controller {
             $openRouter = new \Utils\OpenRouter();
             $prompt = "What are the main benefits of using OpenRouter for AI applications?";
             
+            // Debug message before making the call
+            error_log("Making research model test call with prompt: " . $prompt);
+            
+            // Use the environment settings for max_tokens instead of hardcoding
             $response = $openRouter->generate($prompt, 'research', [
-                'request_source' => 'test_button',
-                'max_tokens' => 100
+                'request_source' => 'test_button'
+                // No max_tokens override - will use the value from .env
             ]);
+            
+            // Log the full raw response for debugging
+            error_log("Raw API response: " . json_encode($response));
             
             if (!empty($response)) {
                 $content = $openRouter->extractContent($response);
-                $this->addAlert('success', 'Research model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"');
+                error_log("Extracted content: " . $content);
+                
+                // Get the last request ID for debugging
+                $requestModel = new \Models\OpenRouterRequest();
+                $lastLog = $requestModel->getAll(1, 0, 'id', 'DESC');
+                if (!empty($lastLog)) {
+                    error_log("Last log record ID: " . $lastLog[0]['id'] . ", response_text: " . substr($lastLog[0]['response_text'] ?? 'NULL', 0, 100));
+                }
+                
+                // Check the full response structure
+                if (isset($response['choices']) && isset($response['choices'][0])) {
+                    error_log("Response choices structure: " . json_encode($response['choices'][0]));
+                }
+                
+                $this->addAlert('success', 'Research model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"' . 
+                    '<br>Response structure logged to error log for debugging.');
             } else {
                 $this->addAlert('warning', 'Research model connected but returned an empty response.');
             }

@@ -80,11 +80,11 @@
                         </button>
                         
                         <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/test-content-model" class="btn btn-outline-info">
-                            <i class="fas fa-vial me-1"></i> Test Content Model
+                            <i class="fas fa-vial me-1"></i> Test Content Model (<?php echo (int)$settings['max_tokens']; ?> tokens)
                         </a>
                         
                         <a href="<?php echo \Config\App::get('base_url'); ?>/openrouter/test-research-model" class="btn btn-outline-secondary">
-                            <i class="fas fa-flask me-1"></i> Test Research Model
+                            <i class="fas fa-flask me-1"></i> Test Research Model (<?php echo (int)$settings['max_tokens']; ?> tokens)
                         </a>
                     </div>
                 </form>
