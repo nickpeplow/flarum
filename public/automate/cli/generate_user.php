@@ -14,16 +14,6 @@
  * 
  * Create a moderator:
  * php generate_user.php --group=mod
- * 
- * Additional options:
- * --email=user@example.com    Specify an email (otherwise auto-generated)
- * --password=secret123        Specify a password (otherwise auto-generated)
- * --domain=mysite.com         Specify domain for auto-generated emails (default: example.com)
- * --dry-run                   Show what would be created without actually creating the user
- * 
- * Examples with multiple options:
- * php generate_user.php --group=mod --email=moderator@example.com --dry-run
- * php generate_user.php --domain=myforum.com --password=securepass
  */
 
 // Define the application path
@@ -432,5 +422,4 @@ try {
     }
 } catch (\Exception $e) {
     echo "\nError creating user: " . $e->getMessage() . "\n";
-    exit(1);
-} 
+    exit(1); 
