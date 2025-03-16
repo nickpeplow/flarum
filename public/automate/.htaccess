@@ -1,0 +1,21 @@
+# Keywords Automation Dashboard .htaccess
+# Redirect all requests to index.php for MVC routing
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # Redirect if not a file, directory, or symlink
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-l
+    RewriteRule ^(.*)$ index.php [L]
+</IfModule>
+
+# Set default charset
+AddDefaultCharset UTF-8
+
+# Disable directory listing
+Options -Indexes
+
+# Set default document
+DirectoryIndex index.php 

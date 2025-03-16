@@ -1,58 +1,101 @@
-# Keywords Automation Dashboard for Flarum
+# Keywords Automation Dashboard
 
-This dashboard provides tools to manage keywords for your Flarum forum.
+A dashboard for managing keywords and tags for the Flarum forum. This application follows the MVC (Model-View-Controller) design pattern.
 
-## Features
+## Directory Structure
 
-- View, add, edit, and delete keywords
-- Approve, reject, or mark keywords as pending
-- Filter and search keywords
-- Database schema management
-- Statistics and system information
+The application is organized into the following directories:
 
-## Installation
+```
+automate/
+│
+├── Config/                 # Configuration files
+│   └── App.php             # Application configuration
+│
+├── Controllers/            # Controller classes
+│   ├── HomeController.php  # Handles dashboard/index page
+│   └── KeywordController.php # Handles keyword management
+│
+├── Core/                   # Core framework files
+│   ├── Autoloader.php      # Class autoloader
+│   ├── Bootstrap.php       # Application bootstrap
+│   ├── Controller.php      # Base controller class
+│   ├── Helper.php          # Helper functions
+│   └── Router.php          # URL router
+│
+├── Models/                 # Model classes
+│   ├── Keyword.php         # Keyword model
+│   └── Tag.php             # Tag model
+│
+├── Views/                  # View templates
+│   ├── home/               # Home/dashboard views
+│   ├── keywords/           # Keyword management views
+│   ├── layouts/            # Layout templates
+│   │   └── main.php        # Main layout
+│   ├── partials/           # Partial templates
+│   │   └── helpers.php     # View helper functions
+│   ├── schema/             # Schema viewer views
+│   └── tags/               # Tag management views
+│
+├── public/                 # Public assets (CSS, JS, images)
+│   ├── css/                # CSS files
+│   ├── js/                 # JavaScript files
+│   └── img/                # Image files
+│
+├── index.php               # Application entry point
+├── README.md               # This file
+└── ...                     # Other files
+```
 
-1. The dashboard files are located in the `public/automate` directory of your Flarum installation.
-2. Make sure the database connection is properly configured in your Flarum's `config.php` file.
-3. Access the dashboard at: `https://your-forum-url/automate/`
+## MVC Pattern
 
-## Setting Up the Database
+The application follows the Model-View-Controller (MVC) pattern:
 
-1. First, visit the Schema Viewer page at: `https://your-forum-url/automate/schema_viewer.php`
-2. Click the "Create Keywords Table" button to create the required database table.
-3. Once the table is created, you can start managing keywords.
+- **Models**: Handle database operations and business logic
+- **Views**: Display data to the user
+- **Controllers**: Process user input and interact with Models and Views
 
-## Usage
+## Key Components
 
-- **Dashboard**: View system information and recent keywords
-- **Keywords Management**: Add, filter, search, and manage keywords
-- **Schema Viewer**: View and manage database schema
+### Router
 
-## Troubleshooting
+The Router (`Core/Router.php`) manages URL routes and dispatches requests to the appropriate controller. Routes are defined in `index.php`.
 
-If you encounter database connection issues:
+### Controllers
 
-1. Check that your Flarum's `config.php` file has the correct database credentials.
-2. Visit `https://your-forum-url/db_test.php` to test your database connection.
-3. Make sure the MySQL server is running and accessible.
+Controllers handle user requests and interact with models to fetch or update data. They then render the appropriate view with the data.
 
-## Structure
+### Views
 
-- `index.php` - Main dashboard page
-- `keywords.php` - Keywords management page
-- `schema_viewer.php` - Database schema management
-- `models/Keyword.php` - Keyword model class
-- `schema/keywords_schema.sql` - SQL schema for the keywords table
-- `partials/` - Header and footer files
+Views contain the HTML templates that display data to the user. They use PHP for dynamic content.
+
+### Models
+
+Models handle database operations and business logic. They encapsulate database queries and data manipulation.
+
+## How to Use
+
+1. Access the dashboard at `/index.php`
+2. Navigate through the application using the sidebar menu
+3. Manage keywords and tags using the provided interfaces
 
 ## Development
 
-If you need to modify the dashboard:
+To extend the application:
 
-1. The main functionality is in the `Keyword.php` model class.
-2. Database connection settings are in `public/db_connection.php`.
-3. Each page follows the pattern of including the database connection, loading models, handling form submissions, and then displaying the UI.
+1. Add new Models in the `Models/` directory
+2. Add new Controllers in the `Controllers/` directory
+3. Add new Views in the `Views/` directory
+4. Define routes in `index.php`
+
+## Dependencies
+
+- PHP 7.4 or higher
+- MySQL 5.7 or higher
+- Flarum installation
+- Bootstrap 5
+- Font Awesome 6
 
 ## License
 
-This dashboard is released under the same license as your Flarum installation. 
+This project is licensed under the MIT License - see the LICENSE file for details. 

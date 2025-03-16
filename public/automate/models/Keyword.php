@@ -5,6 +5,8 @@
  * Handles all database operations for the keywords table
  */
 
+namespace Models;
+
 class Keyword {
     private $db;
     
@@ -36,8 +38,16 @@ class Keyword {
         
         // Add status filter if provided
         if ($status !== null && $status !== 'all') {
-            $sql .= " AND status = :status";
-            $params[':status'] = $status;
+            if ($status === 'pending') {
+                $sql .= " AND status = :status";
+                $params[':status'] = self::STATUS_PENDING;
+            } elseif ($status === 'approved') {
+                $sql .= " AND status = :status";
+                $params[':status'] = self::STATUS_APPROVED;
+            } elseif ($status === 'rejected') {
+                $sql .= " AND status = :status";
+                $params[':status'] = self::STATUS_REJECTED;
+            }
         }
         
         // Add search filter if provided
@@ -51,27 +61,33 @@ class Keyword {
         $params[':offset'] = $offset;
         $params[':perPage'] = $perPage;
         
-        // Execute the query
-        $stmt = $this->db->prepare($sql);
-        foreach ($params as $key => $value) {
-            // Properly bind the LIMIT parameters as integers
-            if ($key === ':offset' || $key === ':perPage') {
-                $stmt->bindValue($key, $value, PDO::PARAM_INT);
-            } else {
-                $stmt->bindValue($key, $value);
+        try {
+            // Execute the query
+            $stmt = $this->db->prepare($sql);
+            
+            foreach ($params as $key => $value) {
+                if ($key === ':offset' || $key === ':perPage') {
+                    $stmt->bindValue($key, $value, \PDO::PARAM_INT);
+                } else {
+                    $stmt->bindValue($key, $value);
+                }
             }
+            
+            $stmt->execute();
+            $keywords = $stmt->fetchAll();
+            
+            // Get total count
+            $stmt = $this->db->query("SELECT FOUND_ROWS() as total");
+            $total = $stmt->fetch()['total'];
+            
+            return [
+                'keywords' => $keywords,
+                'total' => $total
+            ];
+        } catch (\PDOException $e) {
+            error_log("Error in Keyword::getKeywords: " . $e->getMessage());
+            throw new \Exception("Database error: " . $e->getMessage());
         }
-        $stmt->execute();
-        $keywords = $stmt->fetchAll(PDO::FETCH_ASSOC);
-        
-        // Get total count
-        $totalStmt = $this->db->query("SELECT FOUND_ROWS()");
-        $total = $totalStmt->fetchColumn();
-        
-        return [
-            'keywords' => $keywords,
-            'total' => $total
-        ];
     }
     
     /**
@@ -202,56 +218,38 @@ class Keyword {
     /**
      * Get recent keywords
      * 
-     * @param int $limit Number of recent keywords to retrieve
+     * @param int $limit Number of keywords to retrieve
      * @return array Array of keywords
      */
     public function getRecentKeywords($limit = 5) {
-        $stmt = $this->db->prepare("
-            SELECT * FROM keywords
-            ORDER BY created_at DESC 
-            LIMIT :limit
-        ");
-        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt = $this->db->prepare("SELECT * FROM keywords ORDER BY created_at DESC LIMIT :limit");
+        $stmt->bindValue(':limit', $limit, \PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll();
     }
     
     /**
      * Add a new keyword
      * 
      * @param string $keyword Keyword text
-     * @param int $postId Associated post ID
-     * @param int $tagId Associated tag ID
+     * @param int $postId Associated post ID (optional)
+     * @param int $tagId Associated tag ID (optional)
      * @param int $status Keyword status
-     * @return int|bool The ID of the new keyword or false on failure
+     * @return int ID of the newly added keyword
      */
     public function addKeyword($keyword, $postId = null, $tagId = null, $status = self::STATUS_PENDING) {
-        $sql = "INSERT INTO keywords (keyword, post_id, tag_id, status, created_at) 
-                VALUES (:keyword, :postId, :tagId, :status, NOW())";
+        $stmt = $this->db->prepare("
+            INSERT INTO keywords (keyword, post_id, tag_id, status, created_at, updated_at)
+            VALUES (:keyword, :post_id, :tag_id, :status, NOW(), NOW())
+        ");
         
-        $stmt = $this->db->prepare($sql);
         $stmt->bindParam(':keyword', $keyword);
-        $stmt->bindParam(':postId', $postId, PDO::PARAM_INT);
-        $stmt->bindParam(':tagId', $tagId, PDO::PARAM_INT);
-        $stmt->bindParam(':status', $status, PDO::PARAM_INT);
+        $stmt->bindParam(':post_id', $postId);
+        $stmt->bindParam(':tag_id', $tagId);
+        $stmt->bindParam(':status', $status);
         
-        if ($stmt->execute()) {
-            return $this->db->lastInsertId();
-        }
-        
-        return false;
-    }
-    
-    /**
-     * Add a new keyword (alias for addKeyword)
-     * 
-     * @param string $keyword Keyword text
-     * @param int $postId Associated post ID
-     * @param int $tagId Associated tag ID
-     * @return int|bool The ID of the new keyword or false on failure
-     */
-    public function add($keyword, $postId = null, $tagId = null) {
-        return $this->addKeyword($keyword, $postId, $tagId);
+        $stmt->execute();
+        return $this->db->lastInsertId();
     }
     
     /**
@@ -259,101 +257,74 @@ class Keyword {
      * 
      * @param int $id Keyword ID
      * @param int $status New status
-     * @return bool Success flag
-     */
-    public function updateKeywordStatus($id, $status) {
-        $sql = "UPDATE keywords SET status = :status, updated_at = NOW() WHERE id = :id";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        $stmt->bindParam(':status', $status, PDO::PARAM_INT);
-        
-        return $stmt->execute();
-    }
-    
-    /**
-     * Update keyword status (supports string status)
-     * 
-     * @param int $id Keyword ID
-     * @param string|int $status New status (string name or integer)
-     * @return bool Success flag
+     * @return bool Success or failure
      */
     public function updateStatus($id, $status) {
-        // Convert string status to integer if needed
+        // Convert status string to int if needed
         if (is_string($status)) {
-            switch ($status) {
+            switch (strtolower($status)) {
                 case 'pending':
-                    $statusValue = self::STATUS_PENDING;
+                    $status = self::STATUS_PENDING;
                     break;
                 case 'approved':
-                    $statusValue = self::STATUS_APPROVED;
+                    $status = self::STATUS_APPROVED;
                     break;
                 case 'rejected':
-                    $statusValue = self::STATUS_REJECTED;
+                    $status = self::STATUS_REJECTED;
                     break;
-                default:
-                    throw new Exception("Invalid status: $status");
             }
-        } else {
-            $statusValue = $status;
         }
         
-        return $this->updateKeywordStatus($id, $statusValue);
+        $stmt = $this->db->prepare("
+            UPDATE keywords
+            SET status = :status, updated_at = NOW()
+            WHERE id = :id
+        ");
+        
+        $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+        $stmt->bindParam(':status', $status, \PDO::PARAM_INT);
+        
+        return $stmt->execute();
     }
     
     /**
      * Delete a keyword
      * 
      * @param int $id Keyword ID
-     * @return bool Success flag
-     */
-    public function deleteKeyword($id) {
-        $sql = "DELETE FROM keywords WHERE id = :id";
-        
-        $stmt = $this->db->prepare($sql);
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
-        
-        return $stmt->execute();
-    }
-    
-    /**
-     * Delete a keyword (alias for deleteKeyword)
-     * 
-     * @param int $id Keyword ID
-     * @return bool Success flag
+     * @return bool Success or failure
      */
     public function delete($id) {
-        return $this->deleteKeyword($id);
+        $stmt = $this->db->prepare("DELETE FROM keywords WHERE id = :id");
+        $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
+        return $stmt->execute();
     }
     
     /**
      * Get keyword statistics
      * 
-     * @return array Statistics data
+     * @return array Array of statistics
      */
     public function getStatistics() {
-        // Total keywords
-        $totalStmt = $this->db->query("SELECT COUNT(*) FROM keywords");
-        $total = $totalStmt->fetchColumn();
+        // Get total count
+        $stmt = $this->db->query("SELECT COUNT(*) as total FROM keywords");
+        $totalRow = $stmt->fetch();
+        $total = $totalRow['total'];
         
-        // Keywords by status
-        $statusStmt = $this->db->query("
-            SELECT status, COUNT(*) as count 
-            FROM keywords 
-            GROUP BY status
+        // Get counts by status
+        $stmt = $this->db->query("
+            SELECT 
+                SUM(CASE WHEN status = 0 THEN 1 ELSE 0 END) as pending,
+                SUM(CASE WHEN status = 1 THEN 1 ELSE 0 END) as approved,
+                SUM(CASE WHEN status = 2 THEN 1 ELSE 0 END) as rejected
+            FROM keywords
         ");
-        $statusCounts = $statusStmt->fetchAll(PDO::FETCH_KEY_PAIR);
-        
-        // Ensure all statuses have a count
-        $pending = isset($statusCounts[self::STATUS_PENDING]) ? $statusCounts[self::STATUS_PENDING] : 0;
-        $approved = isset($statusCounts[self::STATUS_APPROVED]) ? $statusCounts[self::STATUS_APPROVED] : 0;
-        $rejected = isset($statusCounts[self::STATUS_REJECTED]) ? $statusCounts[self::STATUS_REJECTED] : 0;
+        $counts = $stmt->fetch();
         
         return [
             'total' => $total,
-            'pending' => $pending,
-            'approved' => $approved,
-            'rejected' => $rejected
+            'pending' => (int)$counts['pending'],
+            'approved' => (int)$counts['approved'],
+            'rejected' => (int)$counts['rejected']
         ];
     }
     
@@ -380,20 +351,26 @@ class Keyword {
      * Get status badge HTML
      * 
      * @param int $status Status code
-     * @return string HTML for the status badge
+     * @return string HTML for status badge
      */
     public static function getStatusBadge($status) {
-        $statusName = self::getStatusName($status);
+        $name = self::getStatusName($status);
+        $class = '';
         
         switch ($status) {
             case self::STATUS_PENDING:
-                return "<span class='badge bg-warning text-dark'>$statusName</span>";
+                $class = 'bg-warning';
+                break;
             case self::STATUS_APPROVED:
-                return "<span class='badge bg-success'>$statusName</span>";
+                $class = 'bg-success';
+                break;
             case self::STATUS_REJECTED:
-                return "<span class='badge bg-danger'>$statusName</span>";
+                $class = 'bg-danger';
+                break;
             default:
-                return "<span class='badge bg-secondary'>$statusName</span>";
+                $class = 'bg-secondary';
         }
+        
+        return '<span class="badge ' . $class . '">' . $name . '</span>';
     }
 } 
