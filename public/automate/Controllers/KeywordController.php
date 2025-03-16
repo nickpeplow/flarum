@@ -146,17 +146,35 @@ class KeywordController extends Controller {
             
             // Handle new keyword submission
             if (isset($_POST['new_keyword'])) {
-                $keyword = trim($_POST['new_keyword']);
-                error_log("Adding new keyword: $keyword");
+                $keywordText = trim($_POST['new_keyword']);
+                error_log("Processing keywords input: $keywordText");
                 
-                if (empty($keyword)) {
-                    $this->addAlert('danger', 'Keyword cannot be empty.');
+                if (empty($keywordText)) {
+                    $this->addAlert('danger', 'Keywords cannot be empty.');
                 } else {
-                    $id = $this->keywordModel->addKeyword($keyword);
-                    if ($id) {
-                        $this->addAlert('success', 'New keyword added successfully.');
-                    } else {
-                        $this->addAlert('danger', 'Failed to add new keyword.');
+                    // Split the input by newlines to handle multiple keywords
+                    $keywords = preg_split('/\r\n|\r|\n/', $keywordText);
+                    $successCount = 0;
+                    $failCount = 0;
+                    
+                    foreach ($keywords as $keyword) {
+                        $keyword = trim($keyword);
+                        if (!empty($keyword)) {
+                            $id = $this->keywordModel->addKeyword($keyword);
+                            if ($id) {
+                                $successCount++;
+                            } else {
+                                $failCount++;
+                            }
+                        }
+                    }
+                    
+                    if ($successCount > 0) {
+                        $this->addAlert('success', "$successCount keyword(s) added successfully.");
+                    }
+                    
+                    if ($failCount > 0) {
+                        $this->addAlert('danger', "Failed to add $failCount keyword(s).");
                     }
                 }
             }

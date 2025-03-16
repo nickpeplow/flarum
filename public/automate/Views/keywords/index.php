@@ -97,7 +97,6 @@ if ($debug):
                             <th>Keyword</th>
                             <th>Tag</th>
                             <th>Status</th>
-                            <th>Created</th>
                             <th>Actions</th>
                         </tr>
                     </thead>
@@ -108,7 +107,7 @@ if ($debug):
                                 <td><?php echo htmlspecialchars($keyword['keyword']); ?></td>
                                 <td>
                                     <?php if (!empty($keyword['tag_id']) && !empty($keyword['tag_name'])): ?>
-                                        <span class="badge rounded-pill" style="background-color: <?php echo $keyword['tag_color']; ?>">
+                                        <span class="badge rounded-pill" style="background-color: <?php echo $keyword['tag_color'] ?? '#6c757d'; ?>">
                                             <i class="fas fa-tag me-1"></i> <?php echo htmlspecialchars($keyword['tag_name']); ?>
                                         </span>
                                     <?php else: ?>
@@ -116,7 +115,6 @@ if ($debug):
                                     <?php endif; ?>
                                 </td>
                                 <td><?php echo \Models\Keyword::getStatusBadge($keyword['status']); ?></td>
-                                <td><?php echo date('M j, Y H:i', strtotime($keyword['created_at'])); ?></td>
                                 <td>
                                     <div class="btn-group" role="group">
                                         <!-- Edit Button -->
@@ -240,16 +238,17 @@ if ($debug):
 <div class="card mb-4">
     <div class="card-header">
         <i class="fas fa-plus-circle me-1"></i>
-        Add New Keyword
+        Add New Keywords
     </div>
     <div class="card-body">
         <form method="post" action="<?php echo \Config\App::get('base_url'); ?>/keywords.php" class="row g-3">
             <div class="col-md-8">
-                <input type="text" name="new_keyword" class="form-control" placeholder="Enter new keyword..." required>
+                <textarea name="new_keyword" class="form-control" rows="4" placeholder="Enter keywords (one per line) for bulk entry..." required></textarea>
+                <small class="text-muted">Enter multiple keywords, one per line, for bulk entry.</small>
             </div>
             <div class="col-md-4">
                 <button type="submit" class="btn btn-primary w-100">
-                    <i class="fas fa-plus-circle me-2"></i>Add Keyword
+                    <i class="fas fa-plus-circle me-2"></i>Add Keywords
                 </button>
             </div>
         </form>

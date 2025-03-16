@@ -34,9 +34,11 @@ class Keyword {
         $params = [];
         
         // Base query
-        $sql = "SELECT SQL_CALC_FOUND_ROWS k.*, t.name as tag_name, t.color as tag_color
+        $sql = "SELECT SQL_CALC_FOUND_ROWS k.*, t.name as tag_name, t.color as tag_color, 
+                parent.name as parent_name, parent.color as parent_color
                FROM keywords k
                LEFT JOIN tags t ON k.tag_id = t.id
+               LEFT JOIN tags parent ON t.parent_id = parent.id
                WHERE 1=1";
         
         // Add status filter if provided
@@ -146,13 +148,13 @@ class Keyword {
         foreach ($params as $key => $value) {
             // Properly bind the LIMIT parameters as integers
             if ($key === ':offset' || $key === ':perPage') {
-                $stmt->bindValue($key, $value, PDO::PARAM_INT);
+                $stmt->bindValue($key, $value, \PDO::PARAM_INT);
             } else {
                 $stmt->bindValue($key, $value);
             }
         }
         $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
     }
     
     /**
@@ -213,9 +215,9 @@ class Keyword {
      */
     public function getKeywordById($id) {
         $stmt = $this->db->prepare("SELECT * FROM keywords WHERE id = :id");
-        $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+        $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
         $stmt->execute();
-        return $stmt->fetch(PDO::FETCH_ASSOC);
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
     }
     
     /**
@@ -273,7 +275,7 @@ class Keyword {
             ");
             
             $stmt->bindParam(':status', $statusValue);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
             
             return $stmt->execute();
         } catch (\Exception $e) {
@@ -300,7 +302,7 @@ class Keyword {
             
             $stmt->bindParam(':keyword', $keyword);
             $stmt->bindParam(':tag_id', $tagId);
-            $stmt->bindParam(':id', $id, PDO::PARAM_INT);
+            $stmt->bindParam(':id', $id, \PDO::PARAM_INT);
             
             return $stmt->execute();
         } catch (\Exception $e) {
