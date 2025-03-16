@@ -15,7 +15,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="keywords.php">View All Keywords</a>
+                <a class="small text-white stretched-link" href="keywords">View All Keywords</a>
                 <div class="small text-white"><i class="fas fa-angle-right"></i></div>
             </div>
         </div>
@@ -36,7 +36,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="keywords.php?status=pending">View Pending</a>
+                <a class="small text-white stretched-link" href="keywords?status=pending">View Pending</a>
                 <div class="small text-white"><i class="fas fa-angle-right"></i></div>
             </div>
         </div>
@@ -57,7 +57,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="keywords.php?status=approved">View Approved</a>
+                <a class="small text-white stretched-link" href="keywords?status=approved">View Approved</a>
                 <div class="small text-white"><i class="fas fa-angle-right"></i></div>
             </div>
         </div>
@@ -78,7 +78,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="discussions.php">Browse Discussions</a>
+                <a class="small text-white stretched-link" href="discussions">Browse Discussions</a>
                 <div class="small text-white"><i class="fas fa-angle-right"></i></div>
             </div>
         </div>
@@ -99,7 +99,7 @@
                 </div>
             </div>
             <div class="card-footer d-flex align-items-center justify-content-between">
-                <a class="small text-white stretched-link" href="keywords.php?status=rejected">View Rejected</a>
+                <a class="small text-white stretched-link" href="keywords?status=rejected">View Rejected</a>
                 <div class="small text-white"><i class="fas fa-angle-right"></i></div>
             </div>
         </div>
@@ -156,7 +156,7 @@
                 <?php endif; ?>
             </div>
             <div class="card-footer">
-                <a href="keywords.php" class="btn btn-sm btn-primary">
+                <a href="keywords" class="btn btn-sm btn-primary">
                     <i class="fas fa-arrow-right me-1"></i> View All Keywords
                 </a>
             </div>
@@ -200,7 +200,7 @@
                 </div>
             </div>
             <div class="card-footer">
-                <a href="schema_viewer.php" class="btn btn-sm btn-primary">
+                <a href="schema" class="btn btn-sm btn-primary">
                     <i class="fas fa-database me-1"></i> View Schema
                 </a>
             </div>
@@ -220,7 +220,7 @@
                 <h5 class="card-title">Manage Forum Keywords</h5>
                 <p class="card-text">View, approve, reject or add new keywords to your forum.</p>
                 <div class="d-grid gap-2">
-                    <a href="keywords.php" class="btn btn-primary">
+                    <a href="keywords" class="btn btn-primary">
                         <i class="fas fa-arrow-right me-1"></i> Manage Keywords
                     </a>
                 </div>
@@ -238,8 +238,26 @@
                 <h5 class="card-title">View Forum Discussions</h5>
                 <p class="card-text">Browse and view discussions and their posts from your forum.</p>
                 <div class="d-grid gap-2">
-                    <a href="discussions.php" class="btn btn-success">
+                    <a href="discussions" class="btn btn-success">
                         <i class="fas fa-arrow-right me-1"></i> View Discussions
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- AI Content Generation -->
+    <div class="col-lg-4">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-robot me-1"></i> AI Generator
+            </div>
+            <div class="card-body">
+                <h5 class="card-title">AI Content Generation</h5>
+                <p class="card-text">Generate summaries, expand ideas, analyze content, and extract keywords using AI.</p>
+                <div class="d-grid gap-2">
+                    <a href="ai-generation" class="btn btn-primary">
+                        <i class="fas fa-magic me-1"></i> Generate Content
                     </a>
                 </div>
             </div>

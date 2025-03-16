@@ -47,7 +47,7 @@ if ($debug):
         <div class="row align-items-center">
             <!-- Search Form -->
             <div class="col-md-6 mb-2 mb-md-0">
-                <form method="get" action="<?php echo \Config\App::get('base_url'); ?>/keywords.php" class="d-flex">
+                <form method="get" action="<?php echo \Config\App::get('base_url'); ?>/keywords" class="d-flex">
                     <div class="input-group">
                         <input type="text" name="search" class="form-control" placeholder="Search keywords..." value="<?php echo htmlspecialchars($search); ?>">
                         <button type="submit" class="btn btn-primary">
@@ -61,16 +61,16 @@ if ($debug):
             <div class="col-md-6">
                 <div class="d-flex justify-content-md-end">
                     <div class="btn-group" role="group">
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords.php" class="btn <?php echo $status === null ? 'btn-primary' : 'btn-outline-primary'; ?>">
+                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords" class="btn <?php echo $status === null ? 'btn-primary' : 'btn-outline-primary'; ?>">
                             All
                         </a>
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords.php?status=pending" class="btn <?php echo $status === 'pending' ? 'btn-warning' : 'btn-outline-warning'; ?>">
+                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords?status=pending" class="btn <?php echo $status === 'pending' ? 'btn-warning' : 'btn-outline-warning'; ?>">
                             Pending
                         </a>
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords.php?status=approved" class="btn <?php echo $status === 'approved' ? 'btn-success' : 'btn-outline-success'; ?>">
+                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords?status=approved" class="btn <?php echo $status === 'approved' ? 'btn-success' : 'btn-outline-success'; ?>">
                             Approved
                         </a>
-                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords.php?status=rejected" class="btn <?php echo $status === 'rejected' ? 'btn-danger' : 'btn-outline-danger'; ?>">
+                        <a href="<?php echo \Config\App::get('base_url'); ?>/keywords?status=rejected" class="btn <?php echo $status === 'rejected' ? 'btn-danger' : 'btn-outline-danger'; ?>">
                             Rejected
                         </a>
                     </div>
@@ -169,7 +169,7 @@ if ($debug):
                         <!-- Previous Button -->
                         <?php if ($page > 1): ?>
                             <li class="page-item">
-                                <a class="page-link" href="<?php echo \Config\App::get('base_url'); ?>/keywords.php?page=<?php echo $page - 1; ?><?php echo !empty($status) ? '&status=' . $status : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                <a class="page-link" href="<?php echo \Config\App::get('base_url'); ?>/keywords?page=<?php echo $page - 1; ?><?php echo !empty($status) ? '&status=' . $status : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
                                     &laquo; Previous
                                 </a>
                             </li>
@@ -186,7 +186,7 @@ if ($debug):
                             
                             // Show first page and ellipsis if needed
                             if ($startPage > 1) {
-                                echo '<li class="page-item"><a class="page-link" href="' . \Config\App::get('base_url') . '/keywords.php?page=1' . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">1</a></li>';
+                                echo '<li class="page-item"><a class="page-link" href="' . \Config\App::get('base_url') . '/keywords?page=1' . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">1</a></li>';
                                 if ($startPage > 2) {
                                     echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
                                 }
@@ -195,7 +195,7 @@ if ($debug):
                             // Show page numbers
                             for ($i = $startPage; $i <= $endPage; $i++) {
                                 echo '<li class="page-item ' . ($i == $page ? 'active' : '') . '">';
-                                echo '<a class="page-link" href="' . \Config\App::get('base_url') . '/keywords.php?page=' . $i . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">' . $i . '</a>';
+                                echo '<a class="page-link" href="' . \Config\App::get('base_url') . '/keywords?page=' . $i . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">' . $i . '</a>';
                                 echo '</li>';
                             }
                             
@@ -204,14 +204,14 @@ if ($debug):
                                 if ($endPage < $totalPages - 1) {
                                     echo '<li class="page-item disabled"><a class="page-link" href="#">...</a></li>';
                                 }
-                                echo '<li class="page-item"><a class="page-link" href="' . \Config\App::get('base_url') . '/keywords.php?page=' . $totalPages . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">' . $totalPages . '</a></li>';
+                                echo '<li class="page-item"><a class="page-link" href="' . \Config\App::get('base_url') . '/keywords?page=' . $totalPages . (!empty($status) ? '&status=' . $status : '') . (!empty($search) ? '&search=' . urlencode($search) : '') . '">' . $totalPages . '</a></li>';
                             }
                         ?>
                         
                         <!-- Next Button -->
                         <?php if ($page < $totalPages): ?>
                             <li class="page-item">
-                                <a class="page-link" href="<?php echo \Config\App::get('base_url'); ?>/keywords.php?page=<?php echo $page + 1; ?><?php echo !empty($status) ? '&status=' . $status : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
+                                <a class="page-link" href="<?php echo \Config\App::get('base_url'); ?>/keywords?page=<?php echo $page + 1; ?><?php echo !empty($status) ? '&status=' . $status : ''; ?><?php echo !empty($search) ? '&search=' . urlencode($search) : ''; ?>">
                                     Next &raquo;
                                 </a>
                             </li>
@@ -227,7 +227,7 @@ if ($debug):
             <div class="alert alert-info">
                 <i class="fas fa-info-circle me-2"></i>No keywords found.
                 <?php if (!empty($search)): ?>
-                    <a href="<?php echo \Config\App::get('base_url'); ?>/keywords.php" class="alert-link">Clear search</a>
+                    <a href="<?php echo \Config\App::get('base_url'); ?>/keywords" class="alert-link">Clear search</a>
                 <?php endif; ?>
             </div>
         <?php endif; ?>
@@ -241,7 +241,7 @@ if ($debug):
         Add New Keywords
     </div>
     <div class="card-body">
-        <form method="post" action="<?php echo \Config\App::get('base_url'); ?>/keywords.php" class="row g-3">
+        <form method="post" action="<?php echo \Config\App::get('base_url'); ?>/keywords" class="row g-3">
             <div class="col-md-8">
                 <textarea name="new_keyword" class="form-control" rows="4" placeholder="Enter keywords (one per line) for bulk entry..." required></textarea>
                 <small class="text-muted">Enter multiple keywords, one per line, for bulk entry.</small>

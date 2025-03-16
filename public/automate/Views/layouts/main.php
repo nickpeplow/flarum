@@ -131,6 +131,11 @@
                             <div class="sb-nav-link-icon"><i class="fas fa-database"></i></div>
                             Schema Viewer
                         </a>
+                        
+                        <a class="nav-link" href="<?php echo \Config\App::get('base_url'); ?>/openrouter/settings">
+                            <div class="sb-nav-link-icon"><i class="fas fa-robot"></i></div>
+                            Open Router
+                        </a>
                     </div>
                 </div>
                 <div class="sb-sidenav-footer">

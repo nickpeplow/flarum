@@ -82,4 +82,14 @@ class HomeController extends Controller {
         $this->addAlert('info', 'The keywords functionality is currently under development.');
         $this->redirect(\Config\App::get('base_url'));
     }
+    
+    /**
+     * OpenRouter Test Page
+     * 
+     * @return void
+     */
+    public function openRouterTest() {
+        include __DIR__ . '/../test-openrouter.php';
+        exit;
+    }
 } 

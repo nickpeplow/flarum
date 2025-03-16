@@ -86,13 +86,8 @@ try {
     $router->register('GET', '/keywords', '\Controllers\KeywordController', 'index');
     $router->register('POST', '/keywords', '\Controllers\KeywordController', 'processAction');
     
-    // Legacy keywords.php support
-    $router->register('GET', '/keywords.php', '\Controllers\KeywordController', 'index');
-    $router->register('POST', '/keywords.php', '\Controllers\KeywordController', 'processAction');
-    
     // Tags routes
     $router->register('GET', '/tags', '\Controllers\TagController', 'index');
-    $router->register('GET', '/tags.php', '\Controllers\TagController', 'index');
     
     // Discussions routes
     $router->register('GET', '/discussions', '\Controllers\DiscussionController', 'index');
@@ -101,7 +96,18 @@ try {
     
     // Schema viewer routes - to be implemented 
     $router->register('GET', '/schema', '\Controllers\HomeController', 'schemaRedirect');
-    $router->register('GET', '/schema_viewer.php', '\Controllers\HomeController', 'schemaRedirect');
+    
+    // OpenRouter test route - using a custom handler
+    $router->register('GET', '/openrouter-test', '\Controllers\HomeController', 'openRouterTest');
+    
+    // AI Generation routes
+    $router->register('GET', '/ai-generation', '\Controllers\AiGenerationController', 'index');
+    $router->register('POST', '/ai-generation/generate', '\Controllers\AiGenerationController', 'generate');
+    
+    // OpenRouter settings routes
+    $router->register('GET', '/openrouter/settings', '\Controllers\OpenRouterController', 'settings');
+    $router->register('POST', '/openrouter/save', '\Controllers\OpenRouterController', 'save');
+    $router->register('GET', '/openrouter/test-connection', '\Controllers\OpenRouterController', 'testConnection');
 
     // Dispatch the request
     $router->dispatch();
