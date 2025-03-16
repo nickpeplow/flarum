@@ -8,6 +8,7 @@ CREATE TABLE IF NOT EXISTS `keywords` (
   `post_id` int(10) unsigned DEFAULT NULL,
   `tag_id` int(10) unsigned DEFAULT NULL,
   `status` tinyint(1) NOT NULL DEFAULT '0' COMMENT '0=pending, 1=approved, 2=rejected',
+  `research` TEXT DEFAULT NULL COMMENT 'AI-generated research about the keyword',
   `created_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT NULL ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),

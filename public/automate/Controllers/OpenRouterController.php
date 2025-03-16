@@ -43,7 +43,9 @@ class OpenRouterController extends Controller {
             'anthropic/claude-3.5-sonnet' => 'Claude 3.5 Sonnet',
             'openai/gpt-4o-mini' => 'GPT-4o Mini',
             'anthropic/claude-3.7-sonnet' => 'Claude 3.7 Sonnet',
+            'perplexity/sonar-pro' => 'Perplexity Sonar Pro',
             'anthropic/claude-3-haiku' => 'Claude 3 Haiku',
+            'perplexity/sonar' => 'Perplexity Sonar',
             'anthropic/claude-3-opus' => 'Claude 3 Opus',
             'mistral/mistral-large' => 'Mistral Large',
             'google/gemini-pro' => 'Google Gemini Pro'
