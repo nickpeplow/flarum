@@ -11,25 +11,26 @@ This directory contains command-line scripts for performing various administrati
 #### Usage
 
 ```bash
-./suggest_tags.php [--limit=N] [--min-confidence=0.N] [--dry-run]
+./suggest_tags.php [--limit=N] [--min-confidence=0.N] [--batch-size=N] [--dry-run]
 ```
 
 #### Options
 
-- `--limit=N`: Maximum number of untagged keywords to process (default: 1)
+- `--limit=N`: Maximum number of untagged keywords to process (default: 100)
 - `--min-confidence=0.N`: Minimum confidence threshold for tag assignment (default: 0.7)
+- `--batch-size=N`: Number of keywords to process in a single API request (default: 5)
 - `--dry-run`: Run in simulation mode without making actual database changes
 
 #### Examples
 
-Process a single untagged keyword (default):
+Process untagged keywords with default settings:
 ```bash
 ./suggest_tags.php
 ```
 
-Process up to 10 untagged keywords:
+Process up to 20 untagged keywords with a batch size of 10:
 ```bash
-./suggest_tags.php --limit=10
+./suggest_tags.php --limit=20 --batch-size=10
 ```
 
 Lower the confidence threshold to 60%:
@@ -45,23 +46,25 @@ Test the script without making database changes:
 #### How It Works
 
 1. The script identifies keywords in the database that don't have a tag assigned (and aren't marked as 'rejected')
-2. For each keyword, it sends a request to OpenRouter with:
-   - The keyword text
+2. Keywords are grouped into batches (default 5 per batch) for efficient processing
+3. For each batch, it sends a single request to OpenRouter with:
+   - A list of keywords with their IDs
    - A structured JSON representation of available tags and categories
-3. The structured tag data includes:
+4. The structured tag data includes:
    - Categories (parent tags) always marked as non-assignable and without IDs
    - Child tags with their actual database IDs and marked as assignable
    - A clear hierarchical organization that reflects the tag structure in the database
-4. OpenRouter analyzes the keyword and suggests the most appropriate tag
-5. The response includes:
+5. OpenRouter analyzes all keywords in the batch and suggests the most appropriate tag for each
+6. The response includes a suggestion for each keyword containing:
+   - The keyword ID from the batch
    - The exact tag ID from the database
    - The tag name
    - A confidence score between 0.0 and 1.0
-6. The script takes one of two actions based on the confidence score:
-   - If the confidence score meets the minimum threshold, the script assigns the suggested tag to the keyword
+7. The script processes each suggestion and takes one of two actions based on the confidence score:
+   - If the confidence score meets the minimum threshold, the script assigns the suggested tag to the keyword and marks it as 'approved'
    - If the confidence score is below the minimum threshold, the keyword is marked with a 'rejected' status and won't be processed again
-7. Results are displayed in the console with detailed information about each suggestion
-8. Statistics are saved to track usage over time
+8. Results are displayed in the console with detailed information about each suggestion
+9. Statistics are saved to track usage over time
 
 #### Tag Structure Format
 
@@ -115,12 +118,24 @@ In this structure:
 
 This approach makes it easy to understand the hierarchical relationships while preventing the AI from suggesting categories by mistake.
 
+#### Batch Processing Efficiency
+
+The script processes keywords in batches to improve efficiency:
+
+1. **Reduced API Calls**: Instead of one API call per keyword, the script now makes one call per batch (default 5 keywords), reducing the number of API calls by 80%.
+
+2. **Faster Processing**: Fewer API calls means less overhead and waiting time, resulting in faster overall processing of keywords.
+
+3. **Cost Efficiency**: Most API providers charge per request, so processing multiple keywords in a single request can significantly reduce costs.
+
+4. **Improved Context**: The AI model sees multiple keywords at once, potentially making more consistent categorization decisions by comparing related keywords.
+
 #### Keyword Status Handling
 
 The script manages keywords based on the AI's confidence in its tag suggestions:
 
 - **Untagged**: Keywords without a tag that have not been processed or didn't receive a valid response
-- **Tagged**: Keywords that received a tag suggestion with confidence above the minimum threshold
+- **Approved**: Keywords that received a tag suggestion with confidence above the minimum threshold
 - **Rejected**: Keywords that received a tag suggestion with confidence below the minimum threshold
 
 Rejected keywords are marked with a 'rejected' status in the database and will not be processed in future runs. This prevents the system from repeatedly trying to tag keywords that don't fit well into the available tag structure.
@@ -154,6 +169,6 @@ This allows monitoring the effectiveness of the tag suggestion system over time.
 You can automate tag suggestions by adding this script to your crontab:
 
 ```bash
-# Run tag suggestion every hour for up to 20 keywords
-0 * * * * /usr/bin/php /path/to/flarum/public/automate/cli/suggest_tags.php --limit=20
+# Run tag suggestion every hour for up to 100 keywords with a batch size of 10
+0 * * * * /usr/bin/php /path/to/flarum/public/automate/cli/suggest_tags.php --limit=100 --batch-size=10
 ``` 
