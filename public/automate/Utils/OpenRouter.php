@@ -8,6 +8,8 @@
 
 namespace Utils;
 
+use Models\OpenRouterRequest;
+
 class OpenRouter {
     private $apiKey;
     private $contentModel;
@@ -15,12 +17,15 @@ class OpenRouter {
     private $maxTokens;
     private $temperature;
     private $apiUrl = 'https://openrouter.ai/api/v1/chat/completions';
+    private $requestModel;
     
     /**
      * Constructor - loads configuration from .env file
      */
     public function __construct() {
         $this->loadConfig();
+        // Initialize the request model for logging
+        $this->requestModel = new OpenRouterRequest();
     }
     
     /**
@@ -77,7 +82,37 @@ class OpenRouter {
             }
         }
         
-        return $this->makeRequest($data);
+        // Create log record before making the request
+        $requestId = $this->logRequest($prompt, $model, [
+            'temperature' => $data['temperature'],
+            'max_tokens' => $data['max_tokens'],
+            'request_type' => $modelType,
+            'request_source' => $options['request_source'] ?? 'manual',
+            'additional_params' => array_diff_key($options, array_flip(['max_tokens', 'temperature', 'request_source']))
+        ]);
+        
+        // Record start time
+        $startTime = microtime(true);
+        
+        try {
+            // Make the request
+            $response = $this->makeRequest($data);
+            
+            // Record end time and calculate duration
+            $duration = round((microtime(true) - $startTime) * 1000); // Duration in milliseconds
+            
+            // Log the successful response
+            $this->logResponse($requestId, $response, $duration);
+            
+            return $response;
+            
+        } catch (\Exception $e) {
+            // Log the failed request
+            $this->logError($requestId, $e->getMessage());
+            
+            // Rethrow the exception
+            throw $e;
+        }
     }
     
     /**
@@ -162,5 +197,83 @@ class OpenRouter {
         }
         
         return json_decode($response, true);
+    }
+    
+    /**
+     * Log a request to the database
+     *
+     * @param string $prompt The prompt text
+     * @param string $model The model being used
+     * @param array $options Additional request options
+     * @return int The ID of the created record
+     */
+    private function logRequest($prompt, $model, $options) {
+        try {
+            error_log("OpenRouter: Attempting to log request with model: $model");
+            error_log("OpenRouter: Using class: " . get_class($this->requestModel));
+            $result = $this->requestModel->createRequest($prompt, $model, $options);
+            error_log("OpenRouter: Successfully logged request with ID: $result");
+            return $result;
+        } catch (\Exception $e) {
+            // Log error but don't fail the main request
+            error_log("Error logging OpenRouter request: " . $e->getMessage());
+            error_log("Stack trace: " . $e->getTraceAsString());
+            return 0;
+        }
+    }
+    
+    /**
+     * Log a successful response
+     *
+     * @param int $requestId The request ID to update
+     * @param array $response The API response data
+     * @param int $duration Request duration in milliseconds
+     * @return bool Success status
+     */
+    private function logResponse($requestId, $response, $duration) {
+        if (!$requestId) return false;
+        
+        try {
+            return $this->requestModel->updateWithResponse($requestId, $response, $duration);
+        } catch (\Exception $e) {
+            // Log error but don't fail the main request
+            error_log("Error logging OpenRouter response: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Log an error response
+     *
+     * @param int $requestId The request ID to update
+     * @param string $errorMessage The error message
+     * @return bool Success status
+     */
+    private function logError($requestId, $errorMessage) {
+        if (!$requestId) return false;
+        
+        try {
+            return $this->requestModel->markAsFailed($requestId, $errorMessage);
+        } catch (\Exception $e) {
+            // Log error but don't fail the main request
+            error_log("Error logging OpenRouter error: " . $e->getMessage());
+            return false;
+        }
+    }
+    
+    /**
+     * Get usage statistics for OpenRouter requests
+     *
+     * @param string $startDate Start date (YYYY-MM-DD)
+     * @param string $endDate End date (YYYY-MM-DD)
+     * @return array Usage statistics
+     */
+    public function getUsageStats($startDate = null, $endDate = null) {
+        try {
+            return $this->requestModel->getUsageStats($startDate, $endDate);
+        } catch (\Exception $e) {
+            error_log("Error getting OpenRouter usage stats: " . $e->getMessage());
+            return [];
+        }
     }
 } 

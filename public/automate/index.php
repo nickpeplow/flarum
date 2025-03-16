@@ -107,7 +107,8 @@ try {
     // OpenRouter settings routes
     $router->register('GET', '/openrouter/settings', '\Controllers\OpenRouterController', 'settings');
     $router->register('POST', '/openrouter/save', '\Controllers\OpenRouterController', 'save');
-    $router->register('GET', '/openrouter/test-connection', '\Controllers\OpenRouterController', 'testConnection');
+    $router->register('GET', '/openrouter/test-content-model', '\Controllers\OpenRouterController', 'testContentModel');
+    $router->register('GET', '/openrouter/test-research-model', '\Controllers\OpenRouterController', 'testResearchModel');
 
     // Dispatch the request
     $router->dispatch();

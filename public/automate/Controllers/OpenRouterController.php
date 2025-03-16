@@ -49,6 +49,24 @@ class OpenRouterController extends Controller {
             'google/gemini-pro' => 'Google Gemini Pro'
         ];
         
+        // Get log data
+        $requestModel = new \Models\OpenRouterRequest();
+        
+        // Get page parameters
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Get logs
+        $logs = $requestModel->getAll($limit, $offset, 'created_at', 'DESC');
+        $totalLogs = $requestModel->count();
+        $totalPages = ceil($totalLogs / $limit);
+        
+        // Get usage statistics
+        $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-d', strtotime('-30 days'));
+        $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
+        $stats = $requestModel->getUsageStats($startDate, $endDate);
+        
         // Get alerts
         $alerts = $this->getAlerts();
         
@@ -58,6 +76,13 @@ class OpenRouterController extends Controller {
             'pageHeader' => 'OpenRouter Settings',
             'settings' => $settings,
             'availableModels' => $availableModels,
+            'logs' => $logs,
+            'totalLogs' => $totalLogs,
+            'totalPages' => $totalPages,
+            'page' => $page,
+            'startDate' => $startDate,
+            'endDate' => $endDate,
+            'stats' => $stats,
             'alerts' => $alerts
         ]);
     }
@@ -110,6 +135,64 @@ class OpenRouterController extends Controller {
     }
     
     /**
+     * Test content model with a simple prompt
+     * 
+     * @return void
+     */
+    public function testContentModel() {
+        try {
+            $openRouter = new \Utils\OpenRouter();
+            $prompt = "Hello, please respond with a short greeting.";
+            
+            $response = $openRouter->generate($prompt, 'content', [
+                'request_source' => 'test_button',
+                'max_tokens' => 50
+            ]);
+            
+            if (!empty($response)) {
+                $content = $openRouter->extractContent($response);
+                $this->addAlert('success', 'Content model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"');
+            } else {
+                $this->addAlert('warning', 'Content model connected but returned an empty response.');
+            }
+        } catch (\Exception $e) {
+            $this->addAlert('error', 'Failed to test content model: ' . $e->getMessage());
+        }
+        
+        // Redirect back to settings page
+        $this->redirect('openrouter/settings');
+    }
+    
+    /**
+     * Test research model with a simple prompt
+     * 
+     * @return void
+     */
+    public function testResearchModel() {
+        try {
+            $openRouter = new \Utils\OpenRouter();
+            $prompt = "What are the main benefits of using OpenRouter for AI applications?";
+            
+            $response = $openRouter->generate($prompt, 'research', [
+                'request_source' => 'test_button',
+                'max_tokens' => 100
+            ]);
+            
+            if (!empty($response)) {
+                $content = $openRouter->extractContent($response);
+                $this->addAlert('success', 'Research model test successful! Response: "' . substr($content, 0, 100) . (strlen($content) > 100 ? '...' : '') . '"');
+            } else {
+                $this->addAlert('warning', 'Research model connected but returned an empty response.');
+            }
+        } catch (\Exception $e) {
+            $this->addAlert('error', 'Failed to test research model: ' . $e->getMessage());
+        }
+        
+        // Redirect back to settings page
+        $this->redirect('openrouter/settings');
+    }
+    
+    /**
      * Get current settings from .env file
      * 
      * @return array
@@ -140,25 +223,30 @@ class OpenRouterController extends Controller {
     }
     
     /**
-     * Test API connection
-     * 
+     * Display OpenRouter API usage logs
+     *
      * @return void
      */
-    public function testConnection() {
-        try {
-            $openRouter = new \Utils\OpenRouter();
-            $modelInfo = $openRouter->getModels();
-            
-            if (!empty($modelInfo)) {
-                $this->addAlert('success', 'Successfully connected to OpenRouter API. Found ' . count($modelInfo['data'] ?? []) . ' available models.');
-            } else {
-                $this->addAlert('warning', 'Connected to OpenRouter API, but no models were returned.');
-            }
-        } catch (\Exception $e) {
-            $this->addAlert('error', 'Failed to connect to OpenRouter API: ' . $e->getMessage());
-        }
+    public function logs() {
+        // Get the request model
+        $requestModel = new \Models\OpenRouterRequest();
         
-        // Redirect back to settings page
-        $this->redirect('openrouter/settings');
+        // Get page parameters
+        $page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
+        $limit = 20;
+        $offset = ($page - 1) * $limit;
+        
+        // Get logs
+        $logs = $requestModel->getAll($limit, $offset, 'created_at', 'DESC');
+        $totalLogs = $requestModel->count();
+        $totalPages = ceil($totalLogs / $limit);
+        
+        // Get usage statistics
+        $startDate = isset($_GET['start_date']) ? $_GET['start_date'] : date('Y-m-d', strtotime('-30 days'));
+        $endDate = isset($_GET['end_date']) ? $_GET['end_date'] : date('Y-m-d');
+        $stats = $requestModel->getUsageStats($startDate, $endDate);
+        
+        // Render the view
+        include __DIR__ . '/../Views/openrouter/logs.php';
     }
 } 
