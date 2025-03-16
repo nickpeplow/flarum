@@ -63,6 +63,27 @@
         </div>
     </div>
     
+    <!-- Discussions Card -->
+    <div class="col-xl-3 col-md-6">
+        <div class="card bg-info text-white mb-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between align-items-center">
+                    <div>
+                        <div class="text-xs font-weight-bold text-uppercase mb-1">Forum Discussions</div>
+                        <div class="h5 mb-0 font-weight-bold">View</div>
+                    </div>
+                    <div class="col-auto">
+                        <i class="fas fa-comments fa-2x text-white-300"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="card-footer d-flex align-items-center justify-content-between">
+                <a class="small text-white stretched-link" href="discussions.php">Browse Discussions</a>
+                <div class="small text-white"><i class="fas fa-angle-right"></i></div>
+            </div>
+        </div>
+    </div>
+    
     <!-- Rejected Keywords Card -->
     <div class="col-xl-3 col-md-6">
         <div class="card bg-danger text-white mb-4">
@@ -207,23 +228,20 @@
         </div>
     </div>
     
-    <!-- Statistics (Coming Soon) -->
+    <!-- Discussions Management -->
     <div class="col-lg-4">
         <div class="card h-100">
-            <div class="card-header bg-info text-white">
-                <i class="fas fa-chart-bar me-1"></i> Statistics
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-comments me-1"></i> Discussions
             </div>
             <div class="card-body">
-                <h5 class="card-title">Keyword Analytics</h5>
-                <p class="card-text">View statistics and analytics about keyword usage in your forum.</p>
+                <h5 class="card-title">View Forum Discussions</h5>
+                <p class="card-text">Browse and view discussions and their posts from your forum.</p>
                 <div class="d-grid gap-2">
-                    <button class="btn btn-info text-white" disabled>
-                        <i class="fas fa-chart-line me-1"></i> Coming Soon
-                    </button>
+                    <a href="discussions.php" class="btn btn-success">
+                        <i class="fas fa-arrow-right me-1"></i> View Discussions
+                    </a>
                 </div>
-            </div>
-            <div class="card-footer text-center">
-                <i class="fas fa-tools me-1"></i> Feature in development
             </div>
         </div>
     </div>

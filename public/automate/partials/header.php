@@ -65,6 +65,11 @@
                             </a>
                         </li>
                         <li class="nav-item">
+                            <a class="nav-link <?php echo basename($_SERVER['SCRIPT_NAME']) == 'discussions.php' ? 'active fw-bold' : ''; ?>" href="discussions.php">
+                                <i class="fas fa-comments me-1"></i> Discussions
+                            </a>
+                        </li>
+                        <li class="nav-item">
                             <a class="nav-link <?php echo basename($_SERVER['SCRIPT_NAME']) == 'schema_viewer.php' ? 'active fw-bold' : ''; ?>" href="schema_viewer.php">
                                 <i class="fas fa-database me-1"></i> Schema
                             </a>

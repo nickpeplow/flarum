@@ -94,6 +94,11 @@ try {
     $router->register('GET', '/tags', '\Controllers\TagController', 'index');
     $router->register('GET', '/tags.php', '\Controllers\TagController', 'index');
     
+    // Discussions routes
+    $router->register('GET', '/discussions', '\Controllers\DiscussionController', 'index');
+    $router->register('GET', '/discussions/view/(\d+)', '\Controllers\DiscussionController', 'view');
+    $router->register('GET', '/discussions.php', '\Controllers\DiscussionController', 'index');
+    
     // Schema viewer routes - to be implemented 
     $router->register('GET', '/schema', '\Controllers\HomeController', 'schemaRedirect');
     $router->register('GET', '/schema_viewer.php', '\Controllers\HomeController', 'schemaRedirect');

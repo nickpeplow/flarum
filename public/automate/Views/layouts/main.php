@@ -116,6 +116,11 @@
                             Manage Keywords
                         </a>
                         
+                        <a class="nav-link" href="<?php echo \Config\App::get('base_url'); ?>/discussions">
+                            <div class="sb-nav-link-icon"><i class="fas fa-comments"></i></div>
+                            Discussions
+                        </a>
+                        
                         <a class="nav-link" href="<?php echo \Config\App::get('base_url'); ?>/tags">
                             <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
                             Manage Tags
