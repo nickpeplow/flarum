@@ -90,7 +90,7 @@ if ($debug):
     <div class="card-body">
         <?php if (count($keywords) > 0): ?>
             <div class="table-responsive">
-                <table class="table table-striped table-hover">
+                <table id="keywordsTable" class="table table-striped table-hover">
                     <thead>
                         <tr>
                             <th>ID</th>
@@ -384,5 +384,52 @@ if ($debug):
         document.getElementById('updateKeywordBtn').addEventListener('click', function() {
             document.getElementById('editKeywordForm').submit();
         });
+        
+        // Initialize DataTables
+        if (document.getElementById('keywordsTable')) {
+            $('#keywordsTable').DataTable({
+                responsive: true,
+                pageLength: 25,
+                language: {
+                    search: "Filter records:",
+                    info: "Showing _START_ to _END_ of _TOTAL_ keywords",
+                    paginate: {
+                        first: "First",
+                        last: "Last",
+                        next: "<i class='fas fa-chevron-right'></i>",
+                        previous: "<i class='fas fa-chevron-left'></i>"
+                    }
+                },
+                columnDefs: [
+                    { orderable: false, targets: 4 } // Disable sorting on the actions column
+                ]
+            });
+        }
     });
-</script> 
+</script>
+
+<!-- Add DataTables CSS and JS -->
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/dataTables.bootstrap5.min.css">
+<script src="https://code.jquery.com/jquery-3.7.0.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<!-- Custom styles for DataTables -->
+<style>
+    .dataTables_wrapper .dataTables_length, 
+    .dataTables_wrapper .dataTables_filter, 
+    .dataTables_wrapper .dataTables_info, 
+    .dataTables_wrapper .dataTables_processing, 
+    .dataTables_wrapper .dataTables_paginate {
+        margin-bottom: 10px;
+    }
+    .dataTables_filter {
+        float: right;
+    }
+    .dataTables_length {
+        float: left;
+    }
+    .table-responsive {
+        overflow-x: auto;
+    }
+</style> 
