@@ -1,6 +1,6 @@
 {
-    "total_assigned": 20,
-    "last_run": 1742109354,
+    "total_assigned": 64,
+    "last_run": 1742122629,
     "runs": [
         {
             "date": 1742106822,
@@ -144,6 +144,30 @@
             "date": 1742109354,
             "assigned": 1,
             "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742122392,
+            "assigned": 10,
+            "processed": 10,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742122433,
+            "assigned": 7,
+            "processed": 8,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742122479,
+            "assigned": 0,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742122629,
+            "assigned": 27,
+            "processed": 27,
             "min_confidence": 0.7
         }
     ]
