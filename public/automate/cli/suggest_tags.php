@@ -126,6 +126,29 @@ foreach ($untaggedKeywords as $keyword) {
         }
     } else {
         echo "  ✗ Confidence below minimum threshold of " . number_format($minConfidence * 100, 2) . "% - not assigning tag\n";
+        
+        if (!$dryRun) {
+            // Update the keyword status to "rejected"
+            try {
+                $stmt = $pdo->prepare("
+                    UPDATE keywords 
+                    SET status = 'rejected' 
+                    WHERE id = :id
+                ");
+                $stmt->bindValue(':id', $keyword['id'], PDO::PARAM_INT);
+                $stmt->execute();
+                
+                if ($stmt->rowCount() > 0) {
+                    echo "  ✓ Marked keyword as 'rejected' due to low confidence\n";
+                } else {
+                    echo "  ✗ Failed to update keyword status\n";
+                }
+            } catch (\PDOException $e) {
+                echo "  ✗ Error updating keyword status: " . $e->getMessage() . "\n";
+            }
+        } else {
+            echo "  ℹ Dry run mode - would mark keyword as 'rejected'\n";
+        }
     }
 }
 
@@ -159,6 +182,7 @@ function getUntaggedKeywords($db, $limit = 10) {
             SELECT id, keyword 
             FROM keywords 
             WHERE tag_id IS NULL 
+            AND (status IS NULL OR status != 'rejected')
             ORDER BY created_at DESC 
             LIMIT :limit
         ");
@@ -197,13 +221,19 @@ function suggestTagForKeyword($openRouter, $keyword, $tags) {
         'categories' => []
     ];
     
+    // Internal mapping of category names to their actual IDs (not exposed to AI)
+    $categoryIdMap = [];
+    
     // Add parent categories with their child tags
     foreach ($parentCategories as $categoryId => $category) {
+        // Store the actual category ID in our internal map
+        $categoryIdMap[$category['name']] = (int)$categoryId;
+        
         $categoryData = [
-            'id' => (int)$categoryId,
+            // No ID for categories in the JSON to prevent AI from selecting them
             'name' => $category['name'],
             'description' => $category['description'] ?? '',
-            'is_assignable' => false, // Categories are not directly assignable
+            'is_assignable' => false, // Categories are never assignable now
             'tags' => [] // Child tags will be nested here
         ];
         
@@ -222,13 +252,6 @@ function suggestTagForKeyword($openRouter, $keyword, $tags) {
         }
         
         $tagStructure['categories'][] = $categoryData;
-        
-        // Check if this category can also be used as a tag
-        $canBeAssigned = true; // Default to true, but you can add logic here to determine if a category should be assignable
-        if ($canBeAssigned) {
-            // We'll include the parent category itself, but marked as assignable if applicable
-            $categoryData['is_assignable'] = true;
-        }
     }
     
     // Convert to JSON
@@ -241,8 +264,8 @@ function suggestTagForKeyword($openRouter, $keyword, $tags) {
     $prompt .= $tagsJson . "\n\n";
     $prompt .= "Instructions:\n";
     $prompt .= "1. You can only choose items where 'is_assignable' is true\n";
-    $prompt .= "2. The structure shows categories containing their related tags\n";
-    $prompt .= "3. Select the most appropriate tag for the keyword\n";
+    $prompt .= "2. The structure shows categories (which are not assignable) containing their related tags (which are assignable)\n";
+    $prompt .= "3. Select the most appropriate tag for the keyword - you must choose a tag that has an ID\n";
     $prompt .= "4. Provide a confidence score between 0.0 and 1.0\n\n";
     
     $prompt .= "Please respond in JSON format with the following structure:\n";
@@ -289,15 +312,8 @@ function suggestTagForKeyword($openRouter, $keyword, $tags) {
             // Verify the suggested tag exists and is assignable
             $tagExists = false;
             
-            // Check in categories and their tags
+            // Check in child tags of all categories
             foreach ($tagStructure['categories'] as $category) {
-                // Check if it's the category itself
-                if ($category['id'] === $suggestion['tag_id'] && $category['is_assignable']) {
-                    $tagExists = true;
-                    break;
-                }
-                
-                // Check in child tags
                 foreach ($category['tags'] as $tag) {
                     if ($tag['id'] === $suggestion['tag_id'] && $tag['is_assignable']) {
                         $tagExists = true;

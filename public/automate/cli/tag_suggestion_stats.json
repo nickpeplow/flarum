@@ -1,6 +1,6 @@
 {
-    "total_assigned": 3,
-    "last_run": 1742107565,
+    "total_assigned": 20,
+    "last_run": 1742109354,
     "runs": [
         {
             "date": 1742106822,
@@ -16,6 +16,132 @@
         },
         {
             "date": 1742107565,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742107740,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742107758,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742107779,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108029,
+            "assigned": 0,
+            "processed": 1,
+            "min_confidence": 0.99
+        },
+        {
+            "date": 1742108384,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108410,
+            "assigned": 0,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108442,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108464,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108716,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108753,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108855,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108901,
+            "assigned": 0,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108941,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742108979,
+            "assigned": 0,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109066,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109078,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109107,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109146,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109154,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109344,
+            "assigned": 1,
+            "processed": 1,
+            "min_confidence": 0.7
+        },
+        {
+            "date": 1742109354,
             "assigned": 1,
             "processed": 1,
             "min_confidence": 0.7

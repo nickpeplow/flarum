@@ -44,20 +44,22 @@ Test the script without making database changes:
 
 #### How It Works
 
-1. The script identifies keywords in the database that don't have a tag assigned
+1. The script identifies keywords in the database that don't have a tag assigned (and aren't marked as 'rejected')
 2. For each keyword, it sends a request to OpenRouter with:
    - The keyword text
    - A structured JSON representation of available tags and categories
 3. The structured tag data includes:
-   - Categories (parent tags) that may or may not be assignable
-   - Child tags that are always assignable
+   - Categories (parent tags) always marked as non-assignable and without IDs
+   - Child tags with their actual database IDs and marked as assignable
    - A clear hierarchical organization that reflects the tag structure in the database
 4. OpenRouter analyzes the keyword and suggests the most appropriate tag
 5. The response includes:
    - The exact tag ID from the database
    - The tag name
    - A confidence score between 0.0 and 1.0
-6. If the confidence score meets the minimum threshold, the script assigns the suggested tag to the keyword
+6. The script takes one of two actions based on the confidence score:
+   - If the confidence score meets the minimum threshold, the script assigns the suggested tag to the keyword
+   - If the confidence score is below the minimum threshold, the keyword is marked with a 'rejected' status and won't be processed again
 7. Results are displayed in the console with detailed information about each suggestion
 8. Statistics are saved to track usage over time
 
@@ -69,7 +71,6 @@ The script organizes tags into a hierarchical JSON structure to clearly show the
 {
   "categories": [
     {
-      "id": 9,
       "name": "Signs & Messages",
       "description": "Discover various ways the divine and spiritual realms communicate",
       "is_assignable": false,
@@ -89,10 +90,9 @@ The script organizes tags into a hierarchical JSON structure to clearly show the
       ]
     },
     {
-      "id": 12,
       "name": "Astrology",
       "description": "The study of celestial bodies' influence on human affairs",
-      "is_assignable": true,
+      "is_assignable": false,
       "tags": [
         {
           "id": 20,
@@ -107,11 +107,28 @@ The script organizes tags into a hierarchical JSON structure to clearly show the
 ```
 
 In this structure:
-- Each category contains its child tags in a nested `tags` array
-- Both categories and tags have an `is_assignable` flag that indicates whether they can be selected
-- The AI will only choose items where `is_assignable` is `true`
+- Categories do not have ID values in the JSON structure sent to the AI
+- Each category contains its child tags in a nested `tags` array 
+- Only child tags have ID values and are marked as assignable
+- The AI can only choose items where `is_assignable` is `true` and that have an ID field
+- This ensures the AI can only suggest specific tags and not parent categories
 
-This approach makes it easy to understand the hierarchical relationships while clearly indicating which items can be assigned to keywords.
+This approach makes it easy to understand the hierarchical relationships while preventing the AI from suggesting categories by mistake.
+
+#### Keyword Status Handling
+
+The script manages keywords based on the AI's confidence in its tag suggestions:
+
+- **Untagged**: Keywords without a tag that have not been processed or didn't receive a valid response
+- **Tagged**: Keywords that received a tag suggestion with confidence above the minimum threshold
+- **Rejected**: Keywords that received a tag suggestion with confidence below the minimum threshold
+
+Rejected keywords are marked with a 'rejected' status in the database and will not be processed in future runs. This prevents the system from repeatedly trying to tag keywords that don't fit well into the available tag structure.
+
+To reset rejected keywords and make them eligible for processing again, you can update their status:
+```sql
+UPDATE keywords SET status = NULL WHERE status = 'rejected';
+```
 
 #### Statistics Tracking
 
