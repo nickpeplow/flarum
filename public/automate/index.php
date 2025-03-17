@@ -94,6 +94,11 @@ try {
     $router->register('GET', '/discussions/view/(\d+)', '\Controllers\DiscussionController', 'view');
     $router->register('GET', '/discussions.php', '\Controllers\DiscussionController', 'index');
     
+    // Users routes
+    $router->register('GET', '/users', '\Controllers\UserController', 'index');
+    $router->register('GET', '/users/view/(\d+)', '\Controllers\UserController', 'view');
+    $router->register('POST', '/users/process-action', '\Controllers\UserController', 'processAction');
+    
     // Schema viewer routes - to be implemented 
     $router->register('GET', '/schema', '\Controllers\HomeController', 'schemaRedirect');
     

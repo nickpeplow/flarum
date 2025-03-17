@@ -121,6 +121,11 @@
                             Discussions
                         </a>
                         
+                        <a class="nav-link" href="<?php echo \Config\App::get('base_url'); ?>/users">
+                            <div class="sb-nav-link-icon"><i class="fas fa-users"></i></div>
+                            Manage Users
+                        </a>
+                        
                         <a class="nav-link" href="<?php echo \Config\App::get('base_url'); ?>/tags">
                             <div class="sb-nav-link-icon"><i class="fas fa-tags"></i></div>
                             Manage Tags

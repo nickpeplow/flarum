@@ -2,7 +2,7 @@
 /**
  * User Model
  * 
- * Handles database operations for users table
+ * Handles user data operations
  */
 
 namespace Models;
@@ -25,235 +25,338 @@ class User {
     }
     
     /**
-     * Get a user by ID
+     * Get users with pagination
+     *
+     * @param int $page Page number
+     * @param int $perPage Items per page
+     * @param string $search Search term
+     * @param int|null $groupId Filter by group ID
+     * @return array Array with users and total count
+     */
+    public function getUsers($page = 1, $perPage = 10, $search = '', $groupId = null) {
+        $offset = ($page - 1) * $perPage;
+        $params = [];
+        
+        // Base query for users
+        $query = "SELECT u.id, u.username, u.email, u.joined_at, u.is_email_confirmed, 
+                        u.suspended_until, COUNT(p.id) as post_count,
+                        g.name_singular as primary_group_name, g.color as primary_group_color,
+                        g.id as primary_group_id
+                  FROM users u
+                  LEFT JOIN posts p ON u.id = p.user_id
+                  LEFT JOIN (
+                      SELECT gu.user_id, MIN(gu.group_id) as min_group_id
+                      FROM group_user gu
+                      GROUP BY gu.user_id
+                  ) as min_groups ON u.id = min_groups.user_id
+                  LEFT JOIN groups g ON min_groups.min_group_id = g.id";
+        
+        // Add group filter if provided
+        if ($groupId) {
+            $query .= " JOIN group_user gu ON u.id = gu.user_id AND gu.group_id = ?";
+            $params[] = $groupId;
+        }
+        
+        // Add search condition
+        if (!empty($search)) {
+            $query .= " WHERE (u.username LIKE ? OR u.email LIKE ?)";
+            $params[] = "%$search%";
+            $params[] = "%$search%";
+        } else {
+            $query .= " WHERE 1=1"; // Always true condition for consistency
+        }
+        
+        // Group by user ID
+        $query .= " GROUP BY u.id";
+        
+        // Count total
+        $countQuery = "SELECT COUNT(*) FROM (" . $query . ") as count_table";
+        $stmt = $this->db->prepare($countQuery);
+        foreach ($params as $i => $param) {
+            $stmt->bindValue($i + 1, $param);
+        }
+        $stmt->execute();
+        $total = $stmt->fetchColumn();
+        
+        // Get users with pagination
+        $query .= " ORDER BY u.id DESC LIMIT ?, ?";
+        $stmt = $this->db->prepare($query);
+        
+        // Bind parameters for the main query
+        foreach ($params as $i => $param) {
+            $stmt->bindValue($i + 1, $param);
+        }
+        $paramCount = count($params);
+        $stmt->bindValue($paramCount + 1, $offset, \PDO::PARAM_INT);
+        $stmt->bindValue($paramCount + 2, $perPage, \PDO::PARAM_INT);
+        
+        $stmt->execute();
+        $users = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+        
+        return [
+            'users' => $users,
+            'total' => $total
+        ];
+    }
+    
+    /**
+     * Get a single user by ID
      *
      * @param int $id User ID
-     * @return array|null User data or null if not found
+     * @return array|bool User data or false if not found
      */
     public function getUser($id) {
+        $stmt = $this->db->prepare("
+            SELECT u.*, COUNT(p.id) as post_count
+            FROM users u
+            LEFT JOIN posts p ON u.id = p.user_id
+            WHERE u.id = ?
+            GROUP BY u.id
+        ");
+        $stmt->bindValue(1, $id, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetch(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get groups that a user belongs to
+     *
+     * @param int $userId User ID
+     * @return array Groups
+     */
+    public function getUserGroups($userId) {
+        $stmt = $this->db->prepare("
+            SELECT g.*
+            FROM groups g
+            JOIN group_user gu ON g.id = gu.group_id
+            WHERE gu.user_id = ?
+            ORDER BY g.name_singular
+        ");
+        $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Get all available groups
+     *
+     * @return array Groups
+     */
+    public function getGroups() {
+        $stmt = $this->db->prepare("SELECT * FROM groups ORDER BY name_singular");
+        $stmt->execute();
+        
+        return $stmt->fetchAll(\PDO::FETCH_ASSOC);
+    }
+    
+    /**
+     * Update user information
+     *
+     * @param int $userId User ID
+     * @param array $data User data to update
+     * @return bool Success status
+     */
+    public function updateUser($userId, $data) {
+        $fields = [];
+        $params = [];
+        
+        // Build update fields
+        foreach ($data as $field => $value) {
+            // Special handling for password
+            if ($field === 'password') {
+                $fields[] = "password = ?";
+                $params[] = password_hash($value, PASSWORD_DEFAULT);
+            } else {
+                $fields[] = "$field = ?";
+                $params[] = $value;
+            }
+        }
+        
+        // Add updated_at field
+        $fields[] = "updated_at = NOW()";
+        
+        if (empty($fields)) {
+            return false;
+        }
+        
+        $query = "UPDATE users SET " . implode(', ', $fields) . " WHERE id = ?";
+        $params[] = $userId;
+        
+        $stmt = $this->db->prepare($query);
+        foreach ($params as $i => $param) {
+            $stmt->bindValue($i + 1, $param);
+        }
+        
+        return $stmt->execute();
+    }
+    
+    /**
+     * Update user groups
+     *
+     * @param int $userId User ID
+     * @param array $groupIds Group IDs
+     * @return bool Success status
+     */
+    public function updateUserGroups($userId, $groupIds) {
+        // Begin transaction
+        $this->db->beginTransaction();
+        
         try {
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE id = :id");
-            $stmt->bindValue(':id', $id, \PDO::PARAM_INT);
+            // Delete existing group associations
+            $stmt = $this->db->prepare("DELETE FROM group_user WHERE user_id = ?");
+            $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
             $stmt->execute();
             
-            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
-            return $user ?: null;
-        } catch (\PDOException $e) {
-            error_log("Error in User::getUser: " . $e->getMessage());
-            return null;
+            // Insert new group associations
+            $now = date('Y-m-d H:i:s');
+            $stmt = $this->db->prepare("INSERT INTO group_user (user_id, group_id, created_at) VALUES (?, ?, ?)");
+            
+            foreach ($groupIds as $groupId) {
+                $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
+                $stmt->bindValue(2, $groupId, \PDO::PARAM_INT);
+                $stmt->bindValue(3, $now);
+                $stmt->execute();
+            }
+            
+            // Commit transaction
+            $this->db->commit();
+            return true;
+        } catch (\Exception $e) {
+            // Rollback transaction on error
+            $this->db->rollBack();
+            error_log("Error updating user groups: " . $e->getMessage());
+            return false;
         }
     }
     
     /**
-     * Get a user by username
+     * Suspend a user
      *
-     * @param string $username Username
-     * @return array|null User data or null if not found
+     * @param int $userId User ID
+     * @param string $until Suspension end date (optional)
+     * @return bool Success status
      */
-    public function getUserByUsername($username) {
+    public function suspendUser($userId, $until = null) {
+        $suspendUntil = $until ?: date('Y-m-d H:i:s', strtotime('+30 days'));
+        
+        $stmt = $this->db->prepare("UPDATE users SET suspended_until = ?, updated_at = NOW() WHERE id = ?");
+        $stmt->bindValue(1, $suspendUntil);
+        $stmt->bindValue(2, $userId, \PDO::PARAM_INT);
+        
+        return $stmt->execute();
+    }
+    
+    /**
+     * Unsuspend a user
+     *
+     * @param int $userId User ID
+     * @return bool Success status
+     */
+    public function unsuspendUser($userId) {
+        $stmt = $this->db->prepare("UPDATE users SET suspended_until = NULL, updated_at = NOW() WHERE id = ?");
+        $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
+        
+        return $stmt->execute();
+    }
+    
+    /**
+     * Delete a user
+     *
+     * @param int $userId User ID
+     * @return bool Success status
+     */
+    public function deleteUser($userId) {
+        // Begin transaction
+        $this->db->beginTransaction();
+        
         try {
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE username = :username");
-            $stmt->bindValue(':username', $username);
+            // Delete group associations
+            $stmt = $this->db->prepare("DELETE FROM group_user WHERE user_id = ?");
+            $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
             $stmt->execute();
             
-            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
-            return $user ?: null;
-        } catch (\PDOException $e) {
-            error_log("Error in User::getUserByUsername: " . $e->getMessage());
-            return null;
+            // Delete user
+            $stmt = $this->db->prepare("DELETE FROM users WHERE id = ?");
+            $stmt->bindValue(1, $userId, \PDO::PARAM_INT);
+            $stmt->execute();
+            
+            // Commit transaction
+            $this->db->commit();
+            return true;
+        } catch (\Exception $e) {
+            // Rollback transaction on error
+            $this->db->rollBack();
+            error_log("Error deleting user: " . $e->getMessage());
+            return false;
         }
     }
     
     /**
-     * Get a user by email
+     * Check if a username is available
      *
-     * @param string $email Email address
-     * @return array|null User data or null if not found
+     * @param string $username Username to check
+     * @return bool True if available, false if taken
      */
-    public function getUserByEmail($email) {
-        try {
-            $stmt = $this->db->prepare("SELECT * FROM users WHERE email = :email");
-            $stmt->bindValue(':email', $email);
-            $stmt->execute();
-            
-            $user = $stmt->fetch(\PDO::FETCH_ASSOC);
-            return $user ?: null;
-        } catch (\PDOException $e) {
-            error_log("Error in User::getUserByEmail: " . $e->getMessage());
-            return null;
-        }
+    public function isUsernameAvailable($username) {
+        $stmt = $this->db->prepare("SELECT id FROM users WHERE username = ?");
+        $stmt->bindValue(1, $username);
+        $stmt->execute();
+        
+        return $stmt->rowCount() === 0;
     }
     
     /**
      * Create a new user
      *
-     * @param array $userData User data (username, email, password)
-     * @return int|false ID of the new user or false on failure
+     * @param array $userData User data
+     * @return int|bool New user ID or false on failure
      */
     public function createUser($userData) {
+        // Check if username and email are provided
+        if (empty($userData['username']) || empty($userData['email'])) {
+            return false;
+        }
+        
+        // Check if username is available
+        if (!$this->isUsernameAvailable($userData['username'])) {
+            return false;
+        }
+        
+        // Begin transaction
+        $this->db->beginTransaction();
+        
         try {
-            // Check if a user with this username or email already exists
-            if ($this->getUserByUsername($userData['username'])) {
-                throw new \Exception("Username already taken");
-            }
+            // Prepare user data
+            $username = $userData['username'];
+            $email = $userData['email'];
+            $password = isset($userData['password']) ? password_hash($userData['password'], PASSWORD_DEFAULT) : null;
+            $isEmailConfirmed = isset($userData['is_email_confirmed']) ? (int)$userData['is_email_confirmed'] : 0;
+            $joinedAt = isset($userData['joined_at']) ? $userData['joined_at'] : date('Y-m-d H:i:s');
             
-            if ($this->getUserByEmail($userData['email'])) {
-                throw new \Exception("Email already in use");
-            }
-            
-            // Hash the password
-            $passwordHash = password_hash($userData['password'], PASSWORD_DEFAULT);
-            
-            // Prepare the SQL statement
+            // Insert user
             $stmt = $this->db->prepare("
-                INSERT INTO users (
-                    username, 
-                    email, 
-                    is_email_confirmed, 
-                    password, 
-                    avatar_url, 
-                    joined_at
-                ) VALUES (
-                    :username, 
-                    :email, 
-                    :is_email_confirmed, 
-                    :password, 
-                    :avatar_url, 
-                    :joined_at
-                )
+                INSERT INTO users (username, email, password, is_email_confirmed, joined_at)
+                VALUES (?, ?, ?, ?, ?)
             ");
             
-            // Set default values for optional fields if not provided
-            $userData['is_email_confirmed'] = $userData['is_email_confirmed'] ?? 0;
-            $userData['avatar_url'] = $userData['avatar_url'] ?? null;
-            $userData['joined_at'] = $userData['joined_at'] ?? date('Y-m-d H:i:s');
-            
-            // Bind the parameters
-            $stmt->bindValue(':username', $userData['username']);
-            $stmt->bindValue(':email', $userData['email']);
-            $stmt->bindValue(':is_email_confirmed', $userData['is_email_confirmed'], \PDO::PARAM_INT);
-            $stmt->bindValue(':password', $passwordHash);
-            $stmt->bindValue(':avatar_url', $userData['avatar_url']);
-            $stmt->bindValue(':joined_at', $userData['joined_at']);
-            
-            // Execute the query
-            $success = $stmt->execute();
-            
-            if ($success) {
-                return $this->db->lastInsertId();
-            } else {
-                return false;
-            }
-        } catch (\Exception $e) {
-            error_log("Error in User::createUser: " . $e->getMessage());
-            throw $e;
-        }
-    }
-    
-    /**
-     * Update an existing user
-     *
-     * @param int $id User ID
-     * @param array $userData User data to update
-     * @return bool Success or failure
-     */
-    public function updateUser($id, $userData) {
-        try {
-            // Start building the SQL query
-            $sql = "UPDATE users SET ";
-            $params = [];
-            
-            // Add each field to update
-            $updateFields = [];
-            
-            // Handle username update
-            if (isset($userData['username'])) {
-                // Check if username is already taken by another user
-                $existingUser = $this->getUserByUsername($userData['username']);
-                if ($existingUser && $existingUser['id'] != $id) {
-                    throw new \Exception("Username already taken");
-                }
-                
-                $updateFields[] = "username = :username";
-                $params[':username'] = $userData['username'];
-            }
-            
-            // Handle email update
-            if (isset($userData['email'])) {
-                // Check if email is already in use by another user
-                $existingUser = $this->getUserByEmail($userData['email']);
-                if ($existingUser && $existingUser['id'] != $id) {
-                    throw new \Exception("Email already in use");
-                }
-                
-                $updateFields[] = "email = :email";
-                $params[':email'] = $userData['email'];
-            }
-            
-            // Handle password update
-            if (isset($userData['password'])) {
-                $passwordHash = password_hash($userData['password'], PASSWORD_DEFAULT);
-                $updateFields[] = "password = :password";
-                $params[':password'] = $passwordHash;
-            }
-            
-            // Handle other fields
-            if (isset($userData['is_email_confirmed'])) {
-                $updateFields[] = "is_email_confirmed = :is_email_confirmed";
-                $params[':is_email_confirmed'] = $userData['is_email_confirmed'];
-            }
-            
-            if (isset($userData['avatar_url'])) {
-                $updateFields[] = "avatar_url = :avatar_url";
-                $params[':avatar_url'] = $userData['avatar_url'];
-            }
-            
-            // If no fields to update, return true
-            if (empty($updateFields)) {
-                return true;
-            }
-            
-            // Complete the SQL query
-            $sql .= implode(", ", $updateFields);
-            $sql .= " WHERE id = :id";
-            $params[':id'] = $id;
-            
-            // Prepare and execute the query
-            $stmt = $this->db->prepare($sql);
-            
-            foreach ($params as $key => $value) {
-                if ($key === ':id' || $key === ':is_email_confirmed') {
-                    $stmt->bindValue($key, $value, \PDO::PARAM_INT);
-                } else {
-                    $stmt->bindValue($key, $value);
-                }
-            }
-            
-            return $stmt->execute();
-        } catch (\Exception $e) {
-            error_log("Error in User::updateUser: " . $e->getMessage());
-            throw $e;
-        }
-    }
-    
-    /**
-     * Check if a username is available (not already taken)
-     *
-     * @param string $username Username to check
-     * @return bool True if username is available, false if already taken
-     */
-    public function isUsernameAvailable($username) {
-        try {
-            $stmt = $this->db->prepare("SELECT COUNT(*) FROM users WHERE username = :username");
-            $stmt->bindValue(':username', $username);
+            $stmt->bindValue(1, $username);
+            $stmt->bindValue(2, $email);
+            $stmt->bindValue(3, $password);
+            $stmt->bindValue(4, $isEmailConfirmed, \PDO::PARAM_INT);
+            $stmt->bindValue(5, $joinedAt);
             $stmt->execute();
             
-            $count = (int)$stmt->fetchColumn();
-            return $count === 0;
-        } catch (\PDOException $e) {
-            error_log("Error in User::isUsernameAvailable: " . $e->getMessage());
-            // If we encounter an error, we assume the username might be taken
-            // as a safety measure
+            $userId = $this->db->lastInsertId();
+            
+            // Commit transaction
+            $this->db->commit();
+            return $userId;
+        } catch (\Exception $e) {
+            // Rollback transaction on error
+            $this->db->rollBack();
+            error_log("Error creating user: " . $e->getMessage());
             return false;
         }
     }
